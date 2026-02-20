@@ -1,4 +1,4 @@
-/* export default function App() {
+export default function App() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <h1 className="text-3xl font-bold text-green-600">
@@ -6,10 +6,10 @@
       </h1>
     </div>
   );
-} */
+}
 
-export default function App() {
+/* export default function App() {
   return (
     <h1 className="text-3xl font-bold text-green-600">Tailwind is working</h1>
   );
-}
+} */
