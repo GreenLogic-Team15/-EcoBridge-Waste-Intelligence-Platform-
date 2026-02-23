@@ -1,4 +1,6 @@
+import { submitWasteLog } from "../../services/wasteApi";
 import { useState } from "react";
+import AIResultCard from "./AIResultCard";
 
 export default function WasteForm() {
   // form state
@@ -8,6 +10,12 @@ export default function WasteForm() {
     quantity: "",
     image: null,
   });
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const [aiResult, setAiResult] = useState(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   // handle text inputs
   function handleChange(e) {
@@ -28,13 +36,24 @@ export default function WasteForm() {
   }
 
   // submit handler
-  function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("Waste Submitted:", formData);
+    setLoadingAI(true);
+    setAiResult(null);
 
-    // backend API will go here later
-  }
+    // simulate AI processing delay
+    setTimeout(() => {
+      setAiResult({
+        type: "Plastic Packaging",
+        reuse: "High",
+        partner: "EcoRecycle Ltd.",
+        impact: "2.3kg landfill waste avoided",
+      });
+
+      setLoadingAI(false);
+    }, 2000);
+  };
 
   return (
     <form
@@ -93,10 +112,17 @@ export default function WasteForm() {
       {/* Submit */}
       <button
         type="submit"
-        className="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800"
+        className="bg-green-600 text-white px-4 py-2 rounded"
+        disabled={loading}
       >
-        Submit Waste
+        {loading ? "Submitting..." : "Submit Waste"}
       </button>
+      {message && <p className="mt-4 font-medium">{message}</p>}
+      {loadingAI && (
+        <p className="mt-4 text-green-700">🤖 AI analyzing waste...</p>
+      )}
+
+      <AIResultCard result={aiResult} />
     </form>
   );
 }
