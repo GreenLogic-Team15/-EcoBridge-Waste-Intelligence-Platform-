@@ -1,3 +1,12 @@
+import AppLayout from "../layouts/AppLayout";
+import WasteForm from "../features/waste/WasteForm";
+
 export default function LogWaste() {
-  return <div className="p-8">Log Waste</div>;
+  return (
+    <AppLayout>
+      <WasteForm />
+    </AppLayout>
+  );
 }
+
+

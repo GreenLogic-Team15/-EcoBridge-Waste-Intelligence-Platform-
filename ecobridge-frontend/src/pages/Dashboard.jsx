@@ -1,3 +1,9 @@
+import AppLayout from "../layouts/AppLayout";
+
 export default function Dashboard() {
-  return <h1 className="text-2xl p-8">Dashboard</h1>;
+  return (
+    <AppLayout>
+      <h1 className="text-2xl font-bold">Dashboard Overview</h1>
+    </AppLayout>
+  );
 }
