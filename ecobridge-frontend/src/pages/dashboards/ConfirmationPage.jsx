@@ -28,7 +28,7 @@ const ConfirmationPage = () => {
   };
 
   const handleRequestPickup = () => {
-    navigate("/pickup-requests");
+    navigate("/request-pickup");
   };
 
   return (

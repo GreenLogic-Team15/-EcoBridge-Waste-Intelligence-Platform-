@@ -21,6 +21,7 @@ import Notifications from "./pages/dashboards/Notifications";
 import WasteLogging from "./pages/dashboards/WasteLogging";
 import ConfirmationPage from "./pages/dashboards/ConfirmationPage";
 import PickupRequests from "./pages/dashboards/PickupRequests";
+import RequestPickup from "./pages/dashboards/RequestPickup";
 
 function AppContent() {
   const navigate = useNavigate();
@@ -93,6 +94,10 @@ function AppContent() {
       <Route
         path="/pickup-requests"
         element={isAuthenticated ? <PickupRequests /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/request-pickup"
+        element={isAuthenticated ? <RequestPickup /> : <Navigate to="/" />}
       />
 
       {/* Catch all */}
