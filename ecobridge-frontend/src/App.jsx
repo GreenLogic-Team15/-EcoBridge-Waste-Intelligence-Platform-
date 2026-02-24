@@ -22,11 +22,13 @@ import WasteLogging from "./pages/dashboards/WasteLogging";
 import ConfirmationPage from "./pages/dashboards/ConfirmationPage";
 import PickupRequests from "./pages/dashboards/PickupRequests";
 import RequestPickup from "./pages/dashboards/RequestPickup";
+import History from "./pages/History";
+import Settings from "./pages/Setting";
 
 function AppContent() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userType, setUserType] = useState("");
+  const [_userType, setUserType] = useState("");
 
   const handleAuthSuccess = (type) => {
     setUserType(type);
@@ -34,13 +36,13 @@ function AppContent() {
 
     switch (type) {
       case "partner":
-        navigate("/partner-dashboard");
+        navigate("/partner-homepage");
         break;
       case "admin":
         navigate("/admin-dashboard");
         break;
       case "business":
-        navigate("/waste-logging");
+        navigate("/pickup-requests");
         break;
       default:
         navigate("/");
@@ -72,7 +74,7 @@ function AppContent() {
 
       {/* Protected Routes */}
       <Route
-        path="/partner-dashboard"
+        path="/partner-homepage"
         element={isAuthenticated ? <PartnerHomepage /> : <Navigate to="/" />}
       />
       <Route
@@ -98,6 +100,14 @@ function AppContent() {
       <Route
         path="/request-pickup"
         element={isAuthenticated ? <RequestPickup /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/history"
+        element={isAuthenticated ? <History /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/settings"
+        element={isAuthenticated ? <Settings /> : <Navigate to="/" />}
       />
 
       {/* Catch all */}
