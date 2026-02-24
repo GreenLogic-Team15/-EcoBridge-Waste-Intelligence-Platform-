@@ -1,9 +1,27 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ChevronDown } from "lucide-react";
 
-const Login = ({ onLogin }) => {
+const SignupBusiness = ({ onLogin }) => {
   const navigate = useNavigate();
-  const [rememberMe, setRememberMe] = useState(false);
+  const [businessType, setBusinessType] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const businessTypes = [
+    "Manufacturing",
+    "Restaurant",
+    "Hotel",
+    "Retail",
+    "Office",
+    "Healthcare",
+    "Education",
+    "Other",
+  ];
+
+  const selectBusinessType = (type) => {
+    setBusinessType(type);
+    setIsDropdownOpen(false);
+  };
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -43,11 +61,22 @@ const Login = ({ onLogin }) => {
         <div className="max-w-md w-full mx-auto">
           {/* Title */}
           <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
-            Hi, Welcome back!
+            Create Account
           </h2>
 
           {/* Form Fields */}
           <div className="space-y-5">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Full name
+              </label>
+              <input
+                type="text"
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                placeholder=""
+              />
+            </div>
+
             <div>
               <label className="block text-sm text-gray-600 mb-1.5">
                 Email
@@ -70,31 +99,82 @@ const Login = ({ onLogin }) => {
               />
             </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-[#2E5C47] focus:ring-[#2E5C47]"
-                />
-                <span className="text-sm text-gray-600">Remember me</span>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                placeholder=""
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Business Name
+              </label>
+              <input
+                type="text"
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                placeholder=""
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Location
+              </label>
+              <input
+                type="text"
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                placeholder=""
+              />
+            </div>
+
+            {/* Business Type Dropdown */}
+            <div className="relative">
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Business Type
               </label>
               <button
                 type="button"
-                className="text-sm text-gray-500 hover:text-[#2E5C47] hover:underline"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
               >
-                Forgot password?
+                <span
+                  className={businessType ? "text-gray-900" : "text-gray-500"}
+                >
+                  {businessType || "Select Category"}
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-500 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+                />
               </button>
+
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-auto">
+                  {businessTypes.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => selectBusinessType(type)}
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-[#F0F5F2] hover:text-[#2E5C47] transition-colors"
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Login Button */}
+            {/* Create Account Button */}
             <button
               onClick={onLogin}
               className="w-full bg-[#4A7C59] hover:bg-[#3d6649] text-white font-medium py-3 rounded-md transition-colors mt-2"
             >
-              Login
+              Create Account
             </button>
 
             {/* Divider */}
@@ -140,14 +220,14 @@ const Login = ({ onLogin }) => {
               </button>
             </div>
 
-            {/* Sign Up Link */}
+            {/* Sign In Link */}
             <p className="text-center text-sm text-gray-600 mt-6">
-              Don't have an account?{" "}
+              Already have an account?{" "}
               <button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/login")}
                 className="text-[#2E5C47] font-medium hover:underline"
               >
-                Sign Up
+                Sign in
               </button>
             </p>
           </div>
@@ -157,4 +237,4 @@ const Login = ({ onLogin }) => {
   );
 };
 
-export default Login;
+export default SignupBusiness;

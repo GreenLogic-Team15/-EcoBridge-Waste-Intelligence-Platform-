@@ -1,9 +1,17 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const Login = ({ onLogin }) => {
+const SignupPartner = ({ onLogin }) => {
   const navigate = useNavigate();
-  const [rememberMe, setRememberMe] = useState(false);
+  const [serviceTypes, setServiceTypes] = useState([]);
+
+  const handleServiceTypeChange = (type) => {
+    if (serviceTypes.includes(type)) {
+      setServiceTypes(serviceTypes.filter((t) => t !== type));
+    } else {
+      setServiceTypes([...serviceTypes, type]);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -15,6 +23,7 @@ const Login = ({ onLogin }) => {
           alt="Background"
           className="absolute inset-0 w-full h-full object-cover"
           onError={(e) => {
+            // Fallback if image fails to load
             e.target.style.display = "none";
           }}
         />
@@ -43,11 +52,22 @@ const Login = ({ onLogin }) => {
         <div className="max-w-md w-full mx-auto">
           {/* Title */}
           <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
-            Hi, Welcome back!
+            Create Account
           </h2>
 
           {/* Form Fields */}
           <div className="space-y-5">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Full name
+              </label>
+              <input
+                type="text"
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                placeholder=""
+              />
+            </div>
+
             <div>
               <label className="block text-sm text-gray-600 mb-1.5">
                 Email
@@ -70,31 +90,81 @@ const Login = ({ onLogin }) => {
               />
             </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-[#2E5C47] focus:ring-[#2E5C47]"
-                />
-                <span className="text-sm text-gray-600">Remember me</span>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Confirm Password
               </label>
-              <button
-                type="button"
-                className="text-sm text-gray-500 hover:text-[#2E5C47] hover:underline"
-              >
-                Forgot password?
-              </button>
+              <input
+                type="password"
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                placeholder=""
+              />
             </div>
 
-            {/* Login Button */}
+            <div>
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Organization Name
+              </label>
+              <input
+                type="text"
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                placeholder=""
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Service Location
+              </label>
+              <input
+                type="text"
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                placeholder=""
+              />
+            </div>
+
+            {/* Service Type Checkboxes */}
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">
+                Service Type
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={serviceTypes.includes("composting")}
+                    onChange={() => handleServiceTypeChange("composting")}
+                    className="w-4 h-4 rounded border-gray-300 text-[#2E5C47] focus:ring-[#2E5C47]"
+                  />
+                  <span className="text-sm text-gray-600">Composting</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={serviceTypes.includes("recycling")}
+                    onChange={() => handleServiceTypeChange("recycling")}
+                    className="w-4 h-4 rounded border-gray-300 text-[#2E5C47] focus:ring-[#2E5C47]"
+                  />
+                  <span className="text-sm text-gray-600">Recycling</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={serviceTypes.includes("animal-feed")}
+                    onChange={() => handleServiceTypeChange("animal-feed")}
+                    className="w-4 h-4 rounded border-gray-300 text-[#2E5C47] focus:ring-[#2E5C47]"
+                  />
+                  <span className="text-sm text-gray-600">Animal Feed</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Create Account Button */}
             <button
               onClick={onLogin}
               className="w-full bg-[#4A7C59] hover:bg-[#3d6649] text-white font-medium py-3 rounded-md transition-colors mt-2"
             >
-              Login
+              Create Account
             </button>
 
             {/* Divider */}
@@ -140,14 +210,14 @@ const Login = ({ onLogin }) => {
               </button>
             </div>
 
-            {/* Sign Up Link */}
+            {/* Sign In Link */}
             <p className="text-center text-sm text-gray-600 mt-6">
-              Don't have an account?{" "}
+              Already have an account?{" "}
               <button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/login")}
                 className="text-[#2E5C47] font-medium hover:underline"
               >
-                Sign Up
+                Sign in
               </button>
             </p>
           </div>
@@ -157,4 +227,4 @@ const Login = ({ onLogin }) => {
   );
 };
 
-export default Login;
+export default SignupPartner;

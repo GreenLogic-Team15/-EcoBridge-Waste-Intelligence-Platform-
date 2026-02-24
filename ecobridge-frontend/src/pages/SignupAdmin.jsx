@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
+import Button from "../components/ui/Button";
+import InputField from "../components/ui/InputField";
 
-const Login = ({ onLogin }) => {
+const SignupAdmin = ({ onLogin }) => {
   const navigate = useNavigate();
-  const [rememberMe, setRememberMe] = useState(false);
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -11,12 +12,9 @@ const Login = ({ onLogin }) => {
       <div className="hidden lg:flex lg:w-1/2 relative">
         {/* Background Image */}
         <img
-          src="/images/auth-bg.jpg"
+          src="/images/Ecobridge.jpg"
           alt="Background"
           className="absolute inset-0 w-full h-full object-cover"
-          onError={(e) => {
-            e.target.style.display = "none";
-          }}
         />
         {/* Green Overlay */}
         <div className="absolute inset-0 bg-[#2E5C47]/80"></div>
@@ -39,15 +37,26 @@ const Login = ({ onLogin }) => {
       </div>
 
       {/* RIGHT SIDE - Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 md:px-16 lg:px-24">
         <div className="max-w-md w-full mx-auto">
           {/* Title */}
           <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
-            Hi, Welcome back!
+            Create Account
           </h2>
 
           {/* Form Fields */}
           <div className="space-y-5">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Full name
+              </label>
+              <input
+                type="text"
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                placeholder=""
+              />
+            </div>
+
             <div>
               <label className="block text-sm text-gray-600 mb-1.5">
                 Email
@@ -70,31 +79,34 @@ const Login = ({ onLogin }) => {
               />
             </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-[#2E5C47] focus:ring-[#2E5C47]"
-                />
-                <span className="text-sm text-gray-600">Remember me</span>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Confirm Password
               </label>
-              <button
-                type="button"
-                className="text-sm text-gray-500 hover:text-[#2E5C47] hover:underline"
-              >
-                Forgot password?
-              </button>
+              <input
+                type="password"
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                placeholder=""
+              />
             </div>
 
-            {/* Login Button */}
+            <div>
+              <label className="block text-sm text-gray-600 mb-1.5">
+                Admin access code
+              </label>
+              <input
+                type="password"
+                className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                placeholder=""
+              />
+            </div>
+
+            {/* Create Account Button */}
             <button
               onClick={onLogin}
               className="w-full bg-[#4A7C59] hover:bg-[#3d6649] text-white font-medium py-3 rounded-md transition-colors mt-2"
             >
-              Login
+              Create Account
             </button>
 
             {/* Divider */}
@@ -140,14 +152,14 @@ const Login = ({ onLogin }) => {
               </button>
             </div>
 
-            {/* Sign Up Link */}
+            {/* Sign In Link */}
             <p className="text-center text-sm text-gray-600 mt-6">
-              Don't have an account?{" "}
+              Already have an account?{" "}
               <button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/login")}
                 className="text-[#2E5C47] font-medium hover:underline"
               >
-                Sign Up
+                Sign in
               </button>
             </p>
           </div>
@@ -157,4 +169,4 @@ const Login = ({ onLogin }) => {
   );
 };
 
-export default Login;
+export default SignupAdmin;

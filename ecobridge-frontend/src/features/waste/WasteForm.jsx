@@ -1,5 +1,5 @@
-import { submitWasteLog } from "../../services/wasteApi";
 import { useState } from "react";
+import { useDashboard } from "../../hooks/useDashboard";
 import AIResultCard from "./AIResultCard";
 
 export default function WasteForm() {
@@ -11,11 +11,13 @@ export default function WasteForm() {
     image: null,
   });
 
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [loading, _setLoading] = useState(false);
+  const [message, _setMessage] = useState("");
 
   const [aiResult, setAiResult] = useState(null);
   const [loadingAI, setLoadingAI] = useState(false);
+
+  const { updateStats } = useDashboard();
 
   // handle text inputs
   function handleChange(e) {
@@ -44,12 +46,26 @@ export default function WasteForm() {
 
     // simulate AI processing delay
     setTimeout(() => {
-      setAiResult({
+      const result = {
         type: "Plastic Packaging",
         reuse: "High",
         partner: "EcoRecycle Ltd.",
         impact: "2.3kg landfill waste avoided",
+      };
+
+      setAiResult(result);
+
+      //update dashboard stats
+      updateStats({
+        totalWaste: Number(formData.quantity),
+        impactScore: 75,
       });
+
+      // updateStats({
+      //   totalWaste: data.weight,
+      //   co2Saved: data.co2_saved,
+      //   impactScore: data.impact_score,
+      // });
 
       setLoadingAI(false);
     }, 2000);
