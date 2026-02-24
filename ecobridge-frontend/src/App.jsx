@@ -4,106 +4,99 @@ import {
   Routes,
   Route,
   Navigate,
+  useNavigate,
 } from "react-router-dom";
-import Sidebar from "./components/layout/Sidebar";
 
 // Auth Pages
-import Onboarding from "./pages/Onboarding";
-import Login from "./pages/Login";
-import SignupAdmin from "./pages/SignupAdmin";
-import SignupPartner from "./pages/SignupPartner";
-import SignupBusiness from "./pages/SignupBusiness";
+import Onboarding from "./pages/auth/Onboarding";
+import Login from "./pages/auth/Login";
+import SignupAdmin from "./pages/auth/SignupAdmin";
+import SignupPartner from "./pages/auth/SignupPartner";
+import SignupBusiness from "./pages/auth/SignupBusiness";
 
 // Dashboard Pages
-import PartnerDashboard from "./pages/PartnerDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import WasteLogging from "./pages/WasteLogging";
-import ConfirmationPage from "./pages/ConfirmationPage";
+import PartnerHomepage from "./pages/dashboards/PartnerHomepage.jsx";
+import AdminDashboard from "./pages/dashboards/AdminDashboard";
+import WasteLogging from "./pages/dashboards/WasteLogging";
+import ConfirmationPage from "./pages/dashboards/ConfirmationPage";
 import PickupRequests from "./pages/PickupRequests";
 import Notifications from "./pages/Notifications";
 
 function AppContent() {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userType, setUserType] = useState("partner");
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const handleLogin = (type) => {
+  // Handle login/signup success
+  const handleAuthSuccess = (type) => {
     setUserType(type);
     setIsAuthenticated(true);
+
+    // Redirect based on user type
+    if (type === "partner") {
+      navigate("/partner-dashboard");
+    } else if (type === "admin") {
+      navigate("/admin-dashboard");
+    } else if (type === "business") {
+      navigate("/business-dashboard");
+    }
   };
 
-  const handleWasteSubmit = () => {
-    setShowConfirmation(true);
+  // Handle logout
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUserType("");
+    navigate("/");
   };
 
-  const handleConfirmationContinue = () => {
-    setShowConfirmation(false);
-    setActiveTab("dashboard");
-  };
-
-  // Show confirmation page
-  if (showConfirmation) {
-    return <ConfirmationPage onContinue={handleConfirmationContinue} />;
-  }
-
-  // Not authenticated - show auth flow without sidebar
-  if (!isAuthenticated) {
-    return (
-      <Routes>
-        <Route path="/" element={<Onboarding />} />
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
-        <Route
-          path="/signup-admin"
-          element={<SignupAdmin onLogin={() => handleLogin("admin")} />}
-        />
-        <Route
-          path="/signup-partner"
-          element={<SignupPartner onLogin={() => handleLogin("partner")} />}
-        />
-        <Route
-          path="/signup-business"
-          element={<SignupBusiness onLogin={() => handleLogin("business")} />}
-        />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    );
-  }
-
-  // Authenticated - show dashboard with sidebar
   return (
-    <div className="flex min-h-screen bg-[#F9FAFB]">
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        userType={userType}
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<Onboarding />} />
+      <Route
+        path="/login"
+        element={<Login onLogin={() => handleAuthSuccess("partner")} />}
+      />
+      <Route
+        path="/signup-admin"
+        element={<SignupAdmin onLogin={() => handleAuthSuccess("admin")} />}
+      />
+      <Route
+        path="/signup-partner"
+        element={<SignupPartner onLogin={() => handleAuthSuccess("partner")} />}
+      />
+      <Route
+        path="/signup-business"
+        element={
+          <SignupBusiness onLogin={() => handleAuthSuccess("business")} />
+        }
       />
 
-      <main className="flex-1 ml-64 min-h-screen overflow-y-auto">
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-white p-4 border-b border-gray-200 flex items-center justify-between sticky top-0 z-10">
-          <span className="font-bold text-[#2E5C47]">EcoBridge</span>
-        </div>
+      {/* Protected Dashboard Routes */}
+      <Route
+        path="/partner-dashboard"
+        element={
+          isAuthenticated && userType === "partner" ? (
+            <PartnerHomepage />
+          ) : (
+            <Navigate to="/" />
+          )
+        }
+      />
+      <Route
+        path="/admin-dashboard"
+        element={
+          isAuthenticated && userType === "admin" ? (
+            <AdminDashboard />
+          ) : (
+            <Navigate to="/" />
+          )
+        }
+      />
 
-        {activeTab === "dashboard" &&
-          (userType === "admin" ? <AdminDashboard /> : <PartnerDashboard />)}
-        {activeTab === "log_waste" && (
-          <WasteLogging onSubmit={handleWasteSubmit} />
-        )}
-        {activeTab === "pickup_req" && <PickupRequests />}
-        {activeTab === "notifications" && <Notifications />}
-        {activeTab === "history" && (
-          <div className="p-8">
-            <h1>History Page</h1>
-          </div>
-        )}
-        {activeTab === "settings" && (
-          <div className="p-8">
-            <h1>Settings Page</h1>
-          </div>
-        )}
-      </main>
-    </div>
+      {/* Catch all */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
   );
 }
 
