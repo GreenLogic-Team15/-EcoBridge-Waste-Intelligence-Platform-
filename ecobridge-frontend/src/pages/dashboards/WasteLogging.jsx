@@ -1,133 +1,576 @@
-import React from "react";
-import { MapPin, Camera } from "lucide-react";
-import Button from "../../components/ui/Button";
-import InputField from "../../components/ui/InputField";
+import React, { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  LogOut,
+  Bell,
+  Settings,
+  History,
+  Truck,
+  Upload,
+  Camera,
+  Calendar,
+  Clock,
+  ChevronDown,
+} from "lucide-react";
 
 const WasteLogging = () => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("log_waste");
+  const [showAIAlert, setShowAIAlert] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [formData, setFormData] = useState({
+    description: "",
+    wasteCategory: "",
+    quantity: "50",
+    unit: "KG",
+    condition: "",
+    pickupAddress: "123 Yale Street, Guzape, Abuja",
+    availableFrom: "2026-02-15",
+    time: "12:00",
+    urgency: "Normal",
+    mediaUpload: "public",
+    price: "",
+  });
+
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
+  const sidebarItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "log_waste", label: "Log waste", icon: LogOut },
+    { id: "pickup_requests", label: "Pickup requests", icon: Truck },
+    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "history", label: "History", icon: History },
+    { id: "settings", label: "Settings", icon: Settings },
+  ];
+
+  // Trigger file input click
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Trigger camera input click
+  const triggerCameraInput = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadedImage(reader.result);
+        setShowAIAlert(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleTryAgain = () => {
+    setShowAIAlert(false);
+    setUploadedImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+  };
+
+  const handleConfirm = () => {
+    setShowAIAlert(false);
+    navigate("/confirmation");
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    navigate("/confirmation");
+  };
+
+  const handleChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+  };
+
+  // AI Alert Overlay
+  if (showAIAlert) {
+    return (
+      <div className="flex min-h-screen bg-white">
+        {/* Sidebar */}
+        <div className="w-56 bg-[#E8F5E9] flex flex-col fixed left-0 top-0 h-screen">
+          <nav className="flex-1 px-3 py-6 space-y-1">
+            {sidebarItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors ${
+                    isActive
+                      ? "bg-[#2E5C47] text-white"
+                      : "text-gray-600 hover:bg-[#D1E7DD]"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+          <div className="p-4">
+            <div className="flex items-center gap-3">
+              <img
+                src="https://i.pravatar.cc/150?img=32"
+                alt="Sarah Anthony"
+                className="w-8 h-8 rounded-full"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Sarah Anthony
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content with AI Alert Overlay */}
+        <div className="flex-1 ml-56 relative">
+          <div className="absolute inset-0 bg-black/30 z-10"></div>
+
+          <div className="absolute inset-0 flex items-center justify-center z-20">
+            <div className="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-blue-500 font-medium mb-4">AI Alert</h3>
+
+              <div className="flex gap-4 mb-4">
+                <img
+                  src={uploadedImage}
+                  alt="Detected waste"
+                  className="w-32 h-32 rounded-lg object-cover"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-yellow-500">⚠️</span>
+                    <span className="text-xs text-gray-500">Detected</span>
+                  </div>
+                  <h4 className="text-lg font-bold text-gray-900 mb-1">
+                    Plastic
+                  </h4>
+                  <p className="text-sm text-gray-600 mb-3">Confidence: 97%</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleTryAgain}
+                      className="px-4 py-2 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                    >
+                      Try again
+                    </button>
+                    <button
+                      onClick={handleConfirm}
+                      className="px-4 py-2 text-xs bg-[#4A7C59] text-white rounded hover:bg-[#3d6649]"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-8 opacity-50 pointer-events-none">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+                  Login New Waste
+                </h1>
+                <p className="text-sm text-gray-500">
+                  Enter waste details so partners can request pickup or purchase
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main Waste Logging Form
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Log New Waste</h1>
-        <p className="text-gray-500">
-          Enter waste details so partners can request pickup or purchase.
-        </p>
+    <div className="flex min-h-screen bg-white">
+      {/* Sidebar */}
+      <div className="w-56 bg-[#E8F5E9] flex flex-col fixed left-0 top-0 h-screen">
+        <nav className="flex-1 px-3 py-6 space-y-1">
+          {sidebarItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors ${
+                  isActive
+                    ? "bg-[#2E5C47] text-white"
+                    : "text-gray-600 hover:bg-[#D1E7DD]"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="text-sm font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+        <div className="p-4">
+          <div className="flex items-center gap-3">
+            <img
+              src="https://i.pravatar.cc/150?img=32"
+              alt="Sarah Anthony"
+              className="w-8 h-8 rounded-full"
+            />
+            <span className="text-sm font-medium text-gray-700">
+              Sarah Anthony
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Form Section */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-6">Waste Details</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputField
-                  label="Waste Category"
-                  placeholder="Select category"
+      {/* Main Content */}
+      <div className="flex-1 ml-56 p-8">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+              Login New Waste
+            </h1>
+            <p className="text-sm text-gray-500">
+              Enter waste details so partners can request pickup or purchase
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            15 February 2026
+            <Calendar className="w-4 h-4" />
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex gap-8">
+          {/* Left Column */}
+          <div className="flex-1 space-y-6">
+            {/* Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Image Upload
+              </label>
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                {uploadedImage ? (
+                  <div className="mb-4">
+                    <img
+                      src={uploadedImage}
+                      alt="Preview"
+                      className="w-32 h-32 mx-auto rounded-lg object-cover"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-400 mb-4">
+                      Upload an image to auto-classify waste
+                    </p>
+                    <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                      <Camera className="w-8 h-8 text-gray-300" />
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-center gap-4 mb-4">
+                  <button
+                    type="button"
+                    onClick={triggerFileInput}
+                    className="flex items-center gap-2 text-sm text-[#2E5C47] hover:underline"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Choose file
+                  </button>
+                  <button
+                    type="button"
+                    onClick={triggerCameraInput}
+                    className="flex items-center gap-2 text-sm text-[#2E5C47] hover:underline"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Take a photo
+                  </button>
+                </div>
+                {/* Hidden file inputs */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
                 />
-                <InputField
-                  label="Sub-category"
-                  placeholder="Select sub-category"
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileSelect}
+                  className="hidden"
                 />
+                <button
+                  type="button"
+                  onClick={triggerFileInput}
+                  className="flex items-center gap-2 mx-auto px-4 py-2 bg-[#4A7C59] text-white text-sm rounded hover:bg-[#3d6649]"
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload image
+                </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputField
-                  label="Quantity (kg)"
-                  type="number"
-                  placeholder="0"
-                />
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-gray-700">
-                    Unit
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => handleChange("description", e.target.value)}
+                placeholder="Describe waste...&#10;e.g. leftover rice, vegetable peels"
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm min-h-[100px] resize-none focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+              />
+              <div className="text-right text-xs text-gray-400 mt-1">0/200</div>
+            </div>
+
+            {/* Waste Details */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 mb-4">
+                Waste Details
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1.5">
+                    Waste Category
                   </label>
-                  <div className="flex gap-4 mt-1">
-                    <label className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="relative">
+                    <select
+                      value={formData.wasteCategory}
+                      onChange={(e) =>
+                        handleChange("wasteCategory", e.target.value)
+                      }
+                      className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                    >
+                      <option value="">Select Category</option>
+                      <option value="organic">Organic</option>
+                      <option value="plastic">Plastic</option>
+                      <option value="metal">Metal</option>
+                      <option value="paper">Paper</option>
+                      <option value="glass">Glass</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1.5">
+                    Quantity
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={formData.quantity}
+                      onChange={(e) => handleChange("quantity", e.target.value)}
+                      className="w-24 bg-white border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                    />
+                    <select
+                      value={formData.unit}
+                      onChange={(e) => handleChange("unit", e.target.value)}
+                      className="w-20 bg-white border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                    >
+                      <option>KG</option>
+                      <option>L</option>
+                      <option>units</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-gray-600 mb-2">
+                    Waste condition
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
-                        type="radio"
-                        name="unit"
-                        className="text-[#2E5C47]"
-                        defaultChecked
-                      />{" "}
-                      kg
+                        type="checkbox"
+                        checked={formData.condition === "fresh"}
+                        onChange={() => handleChange("condition", "fresh")}
+                        className="w-4 h-4 rounded border-gray-300 text-[#2E5C47] focus:ring-[#2E5C47]"
+                      />
+                      <span className="text-sm text-gray-600">Fresh</span>
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <label className="flex items-center gap-2 cursor-pointer">
                       <input
-                        type="radio"
-                        name="unit"
-                        className="text-[#2E5C47]"
-                      />{" "}
-                      Liters
+                        type="checkbox"
+                        checked={formData.condition === "stored"}
+                        onChange={() => handleChange("condition", "stored")}
+                        className="w-4 h-4 rounded border-gray-300 text-[#2E5C47] focus:ring-[#2E5C47]"
+                      />
+                      <span className="text-sm text-gray-600">stored</span>
                     </label>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Description
+          {/* Right Column - Location */}
+          <div className="w-80">
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-900 mb-4">
+                Location
+              </h3>
+
+              {/* Pickup address */}
+              <div className="mb-4">
+                <label className="block text-xs text-gray-600 mb-1.5">
+                  Pickup address
                 </label>
-                <textarea
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20 focus:border-[#2E5C47] transition-all min-h-[100px]"
-                  placeholder="Describe the waste material..."
-                ></textarea>
+                <div className="relative">
+                  <select
+                    value={formData.pickupAddress}
+                    onChange={(e) =>
+                      handleChange("pickupAddress", e.target.value)
+                    }
+                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                  >
+                    <option>123 Yale Street, Guzape, Abuja</option>
+                    <option>456 Main Road, Wuse, Abuja</option>
+                    <option>789 Central Ave, Garki, Abuja</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-6">
-              Location & Availability
-            </h3>
-            <div className="space-y-4">
-              <InputField
-                label="Pickup Address"
-                placeholder="123 Main Street, Garki, Abuja"
-                icon={MapPin}
-              />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputField label="Available From" type="date" />
-                <InputField label="Available Until" type="date" />
-              </div>
-              <div className="flex gap-4 pt-2">
-                <Button variant="secondary" className="flex-1">
-                  Save Draft
-                </Button>
-                <Button className="flex-1">Submit Waste Log</Button>
-              </div>
-            </div>
-          </div>
-        </div>
+              {/* Availability and Timing */}
+              <div className="mb-4">
+                <label className="block text-xs text-gray-600 mb-3">
+                  Availability and Timing
+                </label>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-[10px] text-gray-500 mb-1">
+                      Available from
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={formData.availableFrom}
+                        onChange={(e) =>
+                          handleChange("availableFrom", e.target.value)
+                        }
+                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-gray-500 mb-1">
+                      Time
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="time"
+                        value={formData.time}
+                        onChange={(e) => handleChange("time", e.target.value)}
+                        className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-        {/* AI Alert / Sidebar */}
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600">
-                <Camera className="w-5 h-5" />
+                {/* Urgency radio buttons */}
+                <div className="flex gap-4 mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="urgency"
+                      checked={formData.urgency === "Normal"}
+                      onChange={() => handleChange("urgency", "Normal")}
+                      className="w-4 h-4 text-[#2E5C47] focus:ring-[#2E5C47]"
+                    />
+                    <span className="text-sm text-gray-600">Normal</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="urgency"
+                      checked={formData.urgency === "Urgent"}
+                      onChange={() => handleChange("urgency", "Urgent")}
+                      className="w-4 h-4 text-[#2E5C47] focus:ring-[#2E5C47]"
+                    />
+                    <span className="text-sm text-gray-600">Urgent</span>
+                  </label>
+                </div>
               </div>
-              <div>
-                <h3 className="font-bold text-gray-900">AI Detection</h3>
-                <p className="text-xs text-gray-500">Confidence: 97%</p>
+
+              {/* Media upload */}
+              <div className="mb-6">
+                <label className="block text-xs text-gray-600 mb-2">
+                  Media upload
+                </label>
+                <div className="space-y-2 mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="mediaUpload"
+                      checked={formData.mediaUpload === "public"}
+                      onChange={() => handleChange("mediaUpload", "public")}
+                      className="w-4 h-4 text-[#2E5C47] focus:ring-[#2E5C47]"
+                    />
+                    <span className="text-sm text-gray-600">
+                      Public to all partners
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="mediaUpload"
+                      checked={formData.mediaUpload === "verified"}
+                      onChange={() => handleChange("mediaUpload", "verified")}
+                      className="w-4 h-4 text-[#2E5C47] focus:ring-[#2E5C47]"
+                    />
+                    <span className="text-sm text-gray-600">
+                      Only to verified users
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Price */}
+              <div className="mb-6">
+                <label className="block text-xs text-gray-600 mb-1.5">
+                  Price
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                    ₦
+                  </span>
+                  <input
+                    type="text"
+                    value={formData.price}
+                    onChange={(e) => handleChange("price", e.target.value)}
+                    placeholder="Enter price or leave blank if negotiable"
+                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                  />
+                </div>
               </div>
             </div>
-            <div className="aspect-video bg-gray-100 rounded-lg mb-4 overflow-hidden relative">
-              <img
-                src="https://images.unsplash.com/photo-1605600659908-0ef719419d41?auto=format&fit=crop&q=80&w=600"
-                alt="Detected Waste"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-md">
-                Plastic
-              </div>
+
+            {/* Action Buttons - Fixed spacing */}
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"
+              >
+                Save Draft
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2.5 bg-[#4A7C59] text-white text-sm rounded-lg hover:bg-[#3d6649]"
+              >
+                Submit waste log
+              </button>
             </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Our AI has detected <strong>Plastic Bottles</strong> in your
-              uploaded image.
-            </p>
-            <Button variant="secondary" className="w-full text-sm">
-              Retake Photo
-            </Button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

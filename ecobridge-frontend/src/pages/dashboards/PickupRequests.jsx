@@ -7,7 +7,7 @@ import {
   MapPin,
   Truck,
 } from "lucide-react";
-import { PICKUP_REQUESTS } from "../data/mockData";
+import { PICKUP_REQUESTS } from "../../data/mockData";
 
 const PickupRequests = () => {
   return (

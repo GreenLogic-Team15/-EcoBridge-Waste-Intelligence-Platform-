@@ -15,38 +15,35 @@ import SignupPartner from "./pages/auth/SignupPartner";
 import SignupBusiness from "./pages/auth/SignupBusiness";
 
 // Dashboard Pages
-import PartnerHomepage from "./pages/dashboards/PartnerHomepage.jsx";
+import PartnerHomepage from "./pages/dashboards/PartnerHomepage";
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
+import Notifications from "./pages/dashboards/Notifications";
 import WasteLogging from "./pages/dashboards/WasteLogging";
 import ConfirmationPage from "./pages/dashboards/ConfirmationPage";
-import PickupRequests from "./pages/PickupRequests";
-import Notifications from "./pages/Notifications";
+import PickupRequests from "./pages/dashboards/PickupRequests";
 
 function AppContent() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userType, setUserType] = useState("partner");
+  const [userType, setUserType] = useState("");
 
-  // Handle login/signup success
   const handleAuthSuccess = (type) => {
     setUserType(type);
     setIsAuthenticated(true);
 
-    // Redirect based on user type
-    if (type === "partner") {
-      navigate("/partner-dashboard");
-    } else if (type === "admin") {
-      navigate("/admin-dashboard");
-    } else if (type === "business") {
-      navigate("/business-dashboard");
+    switch (type) {
+      case "partner":
+        navigate("/partner-dashboard");
+        break;
+      case "admin":
+        navigate("/admin-dashboard");
+        break;
+      case "business":
+        navigate("/waste-logging");
+        break;
+      default:
+        navigate("/");
     }
-  };
-
-  // Handle logout
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserType("");
-    navigate("/");
   };
 
   return (
@@ -72,26 +69,30 @@ function AppContent() {
         }
       />
 
-      {/* Protected Dashboard Routes */}
+      {/* Protected Routes */}
       <Route
         path="/partner-dashboard"
-        element={
-          isAuthenticated && userType === "partner" ? (
-            <PartnerHomepage />
-          ) : (
-            <Navigate to="/" />
-          )
-        }
+        element={isAuthenticated ? <PartnerHomepage /> : <Navigate to="/" />}
       />
       <Route
         path="/admin-dashboard"
-        element={
-          isAuthenticated && userType === "admin" ? (
-            <AdminDashboard />
-          ) : (
-            <Navigate to="/" />
-          )
-        }
+        element={isAuthenticated ? <AdminDashboard /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/notifications"
+        element={isAuthenticated ? <Notifications /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/waste-logging"
+        element={isAuthenticated ? <WasteLogging /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/confirmation"
+        element={isAuthenticated ? <ConfirmationPage /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/pickup-requests"
+        element={isAuthenticated ? <PickupRequests /> : <Navigate to="/" />}
       />
 
       {/* Catch all */}
