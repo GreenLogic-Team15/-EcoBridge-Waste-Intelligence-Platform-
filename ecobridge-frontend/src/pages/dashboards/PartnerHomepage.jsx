@@ -14,6 +14,7 @@ import {
   Grid3X3,
 } from "lucide-react";
 import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+import Sidebar from "../components/layout/Sidebar";
 
 const PartnerHomepage = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
