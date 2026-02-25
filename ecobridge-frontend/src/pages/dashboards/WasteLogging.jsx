@@ -1,22 +1,12 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  LayoutDashboard,
-  LogOut,
-  Bell,
-  Settings,
-  History,
-  Truck,
-  Upload,
-  Camera,
-  Calendar,
-  Clock,
-  ChevronDown,
-} from "lucide-react";
+import { Upload, Camera, Calendar, Clock, ChevronDown } from "lucide-react";
+import Sidebar from "../../components/layout/Sidebar";
+import { useAuth } from "../../hooks/useAuth";
 
 const WasteLogging = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("log_waste");
+  const { userType } = useAuth();
   const [showAIAlert, setShowAIAlert] = useState(false);
   const [uploadedImage, setUploadedImage] = useState(null);
   const [formData, setFormData] = useState({
@@ -35,15 +25,6 @@ const WasteLogging = () => {
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
-
-  const sidebarItems = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "log_waste", label: "Log waste", icon: LogOut },
-    { id: "pickup_requests", label: "Pickup requests", icon: Truck },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "history", label: "History", icon: History },
-    { id: "settings", label: "Settings", icon: Settings },
-  ];
 
   // Trigger file input click
   const triggerFileInput = () => {
@@ -92,41 +73,7 @@ const WasteLogging = () => {
   if (showAIAlert) {
     return (
       <div className="flex min-h-screen bg-white">
-        {/* Sidebar */}
-        <div className="w-56 bg-[#E8F5E9] flex flex-col fixed left-0 top-0 h-screen">
-          <nav className="flex-1 px-3 py-6 space-y-1">
-            {sidebarItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors ${
-                    isActive
-                      ? "bg-[#2E5C47] text-white"
-                      : "text-gray-600 hover:bg-[#D1E7DD]"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-          <div className="p-4">
-            <div className="flex items-center gap-3">
-              <img
-                src="https://i.pravatar.cc/150?img=32"
-                alt="Sarah Anthony"
-                className="w-8 h-8 rounded-full"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Sarah Anthony
-              </span>
-            </div>
-          </div>
-        </div>
+        <Sidebar userType={userType || "business"} />
 
         {/* Main Content with AI Alert Overlay */}
         <div className="flex-1 ml-56 relative">
@@ -190,41 +137,7 @@ const WasteLogging = () => {
   // Main Waste Logging Form
   return (
     <div className="flex min-h-screen bg-white">
-      {/* Sidebar */}
-      <div className="w-56 bg-[#E8F5E9] flex flex-col fixed left-0 top-0 h-screen">
-        <nav className="flex-1 px-3 py-6 space-y-1">
-          {sidebarItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors ${
-                  isActive
-                    ? "bg-[#2E5C47] text-white"
-                    : "text-gray-600 hover:bg-[#D1E7DD]"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-        <div className="p-4">
-          <div className="flex items-center gap-3">
-            <img
-              src="https://i.pravatar.cc/150?img=32"
-              alt="Sarah Anthony"
-              className="w-8 h-8 rounded-full"
-            />
-            <span className="text-sm font-medium text-gray-700">
-              Sarah Anthony
-            </span>
-          </div>
-        </div>
-      </div>
+      <Sidebar userType={userType || "business"} />
 
       {/* Main Content */}
       <div className="flex-1 ml-56 p-8">
