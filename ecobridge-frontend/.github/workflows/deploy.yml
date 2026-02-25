@@ -13,6 +13,9 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ecobridge-frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,6 +25,7 @@ jobs:
         with:
           node-version: 20
           cache: "npm"
+          cache-dependency-path: "./ecobridge-frontend/package-lock.json"
 
       - name: Install dependencies
         run: npm ci
@@ -35,7 +39,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "./dist"
+          path: "./ecobridge-frontend/dist"
 
       - name: Deploy to GitHub Pages
         id: deployment
