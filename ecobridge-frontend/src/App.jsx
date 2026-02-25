@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import Navbar from "./components/layout/Navbar";
+import { useAuth } from "./hooks/useAuth";
 
 // Auth Pages
 import Onboarding from "./pages/auth/Onboarding";
@@ -26,13 +28,10 @@ const PageWrapper = ({ children, userType }) => {
 
 function AppContent() {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userType, setUserType] = useState(""); // Removed underscore
+  const { isAuthenticated, login } = useAuth();
 
   const handleAuthSuccess = (type) => {
-    setUserType(type);
-    setIsAuthenticated(true);
-
+    login(type);
     switch (type) {
       case "partner":
         navigate("/partner-homepage");
@@ -49,7 +48,9 @@ function AppContent() {
   };
 
   return (
-    <Routes>
+    <>
+      <Navbar />
+      <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Onboarding />} />
       <Route
@@ -112,6 +113,7 @@ function AppContent() {
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+    </>
   );
 }
 

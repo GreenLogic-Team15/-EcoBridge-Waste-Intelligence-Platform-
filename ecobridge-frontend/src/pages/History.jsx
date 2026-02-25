@@ -1,11 +1,10 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Search, Filter, Calendar, ChevronDown, Download } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
+import { useAuth } from "../hooks/useAuth";
 
 const History = () => {
-  const navigate = useNavigate();
-  const [userType] = useState("admin"); // Get from context/props in real app
+  const { userType } = useAuth();
   const [filterOpen, setFilterOpen] = useState(false);
   const [dateRange, setDateRange] = useState("Last 30 days");
 
@@ -101,7 +100,7 @@ const History = () => {
 
   return (
     <div className="flex min-h-screen bg-[#F5F7F6]">
-      <Sidebar userType={userType} />
+      <Sidebar userType={userType || "admin"} />
 
       <div className="flex-1 ml-56 p-8">
         {/* Header */}

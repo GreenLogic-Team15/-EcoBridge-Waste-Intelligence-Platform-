@@ -15,11 +15,9 @@ const Sidebar = ({ userType }) => {
 
   // Define menu items based on user type
   const getMenuItems = () => {
-    const commonItems = [
-      { id: "notifications", label: "Notifications", icon: Bell },
-      { id: "history", label: "History", icon: History },
-      { id: "settings", label: "Settings", icon: Settings },
-    ];
+    const notificationItem = { id: "notifications", label: "Notifications", icon: Bell, path: "/notifications" };
+    const historyItem = { id: "history", label: "History", icon: History, path: "/history" };
+    const settingsItem = { id: "settings", label: "Settings", icon: Settings, path: "/settings" };
 
     switch (userType) {
       case "partner":
@@ -42,15 +40,8 @@ const Sidebar = ({ userType }) => {
             icon: Truck,
             path: "/request-pickup",
           },
-          ...commonItems.map((item) => ({
-            ...item,
-            path:
-              item.id === "notifications"
-                ? "/notifications"
-                : item.id === "history"
-                  ? "/history"
-                  : "/settings",
-          })),
+          notificationItem,
+          historyItem,
         ];
 
       case "business":
@@ -73,15 +64,9 @@ const Sidebar = ({ userType }) => {
             icon: Truck,
             path: "/request-pickup",
           },
-          ...commonItems.map((item) => ({
-            ...item,
-            path:
-              item.id === "notifications"
-                ? "/notifications"
-                : item.id === "history"
-                  ? "/history"
-                  : "/settings",
-          })),
+          notificationItem,
+          historyItem,
+          settingsItem,
         ];
 
       case "admin":
@@ -104,15 +89,9 @@ const Sidebar = ({ userType }) => {
             icon: Truck,
             path: "/request-pickup",
           },
-          ...commonItems.map((item) => ({
-            ...item,
-            path:
-              item.id === "notifications"
-                ? "/notifications"
-                : item.id === "history"
-                  ? "/history"
-                  : "/settings",
-          })),
+          notificationItem,
+          historyItem,
+          settingsItem,
         ];
 
       default:

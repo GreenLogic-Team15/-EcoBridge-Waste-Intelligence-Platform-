@@ -9,9 +9,10 @@ import {
   Camera,
 } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
+import { useAuth } from "../hooks/useAuth";
 
 const Settings = () => {
-  const [userType] = useState("admin");
+  const { userType } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
 
   const tabs = [
@@ -24,7 +25,7 @@ const Settings = () => {
 
   return (
     <div className="flex min-h-screen bg-[#F5F7F6]">
-      <Sidebar userType={userType} />
+      <Sidebar userType={userType || "admin"} />
 
       <div className="flex-1 ml-56 p-8">
         <h1 className="text-2xl font-semibold text-gray-900 mb-6">Settings</h1>
