@@ -25,10 +25,15 @@ import RequestPickup from "./pages/dashboards/RequestPickup";
 import History from "./pages/History";
 import Settings from "./pages/Setting";
 
+// Wrapper component to pass userType
+const PageWrapper = ({ children, userType }) => {
+  return React.cloneElement(children, { userType });
+};
+
 function AppContent() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [_userType, setUserType] = useState("");
+  const [userType, setUserType] = useState(""); // Removed underscore
 
   const handleAuthSuccess = (type) => {
     setUserType(type);
