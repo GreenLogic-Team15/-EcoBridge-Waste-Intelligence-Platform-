@@ -29,8 +29,8 @@ const SignupAdmin = () => {
         fullName: form.fullName,
         email: form.email,
         password: form.password,
-        confirmPassword: form.confirmPassword,
-        adminAccessCode: form.adminAccessCode,
+        currentPassword: form.confirmPassword,
+        accessCode: form.adminAccessCode,
       });
       const { token } = response.data || {};
       if (token) localStorage.setItem("token", token);
@@ -38,6 +38,7 @@ const SignupAdmin = () => {
       navigate("/admin-dashboard");
     } catch (err) {
       console.log("SignupAdmin error", err.response?.data || err.message);
+      console.log("SignupAdmin backend error data", err.response?.data);
       // #region agent log
       fetch(
         "http://127.0.0.1:7464/ingest/2a841099-073f-46d7-a902-0212580c75c7",
@@ -64,8 +65,35 @@ const SignupAdmin = () => {
         },
       ).catch(() => {});
       // #endregion agent log
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7507/ingest/56b395a6-7fc8-4b95-993b-a061c9e4db11",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "8f2768",
+          },
+          body: JSON.stringify({
+            sessionId: "8f2768",
+            runId: "signup-run",
+            hypothesisId: "H1-H5",
+            location: "src/pages/auth/SignupAdmin.jsx:handleSubmit catch",
+            message: "SignupAdmin failed (current session)",
+            data: {
+              url: err.config?.url,
+              code: err.code,
+              message: err.message,
+              status: err.response?.status,
+            },
+            timestamp: Date.now(),
+          }),
+        },
+      ).catch(() => {});
+      // #endregion agent log
       setError(
         err.response?.data?.message ||
+          err.response?.data?.msg ||
           "Unable to create account. Please try again.",
       );
     } finally {
