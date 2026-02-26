@@ -5,4 +5,15 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   base: "/-EcoBridge-Waste-Intelligence-Platform-/",
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-maps": ["@react-google-maps/api"],
+          "vendor-charts": ["recharts"],
+        },
+      },
+    },
+  },
 });

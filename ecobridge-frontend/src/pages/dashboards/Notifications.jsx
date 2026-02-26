@@ -1,43 +1,90 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
+import { api } from "../../services/apiClient";
 
 const Notifications = () => {
   const navigate = useNavigate();
   const { userType } = useAuth();
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const notifications = [
-    {
-      id: 1,
-      title: "Pickup Scheduled for Tomorrow",
-      time: "31 Feb 15:00 pm",
-      description: "Your waste pickup is scheduled for 9:00AM tomorrow",
-      color: "bg-[#4A7C59]",
-    },
-    {
-      id: 2,
-      title: "Waste Segregation Reminder",
-      time: "01 Mar 16:00 pm",
-      description:
-        "Please ensure proper segregation of recyclables and non-recyclables",
-      color: "bg-yellow-400",
-    },
-    {
-      id: 3,
-      title: "Environmental Impact Notification",
-      time: "31 Feb 15:30 pm",
-      description: "Your waste pickup is scheduled for 9:00AM tomorrow",
-      color: "bg-[#4A7C59]",
-    },
-    {
-      id: 4,
-      title: "System Maintenance Alert",
-      time: "31 Feb 15:15 pm",
-      description: "Scheduled maintenance tonight from 22:00 to 02:00",
-      color: "bg-red-500",
-    },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    api
+      .get("/api/notifications")
+      .then((res) => {
+        if (cancelled) return;
+        const payload = res.data;
+        const list =
+          payload?.notifications ||
+          payload?.data ||
+          (Array.isArray(payload) ? payload : []);
+        setNotifications(Array.isArray(list) ? list : []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+
+        // #region agent log
+        fetch(
+          "http://127.0.0.1:7507/ingest/56b395a6-7fc8-4b95-993b-a061c9e4db11",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Debug-Session-Id": "8f2768",
+            },
+            body: JSON.stringify({
+              sessionId: "8f2768",
+              runId: "notifications",
+              hypothesisId: "notifications",
+              location:
+                "src/pages/dashboards/Notifications.jsx:useEffect fetch",
+              message: "Notifications fetch failed",
+              data: {
+                message: err.message,
+                status: err.response?.status,
+                url: err.config?.url,
+              },
+              timestamp: Date.now(),
+            }),
+          },
+        ).catch(() => {});
+        // #endregion agent log
+
+        setError(
+          err.response?.data?.message ||
+            "Unable to load notifications. Please try again.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const markAsRead = async (notification) => {
+    if (!notification || !notification._id) return;
+    try {
+      await api.put(`/api/notifications/${notification._id}/read`);
+      setNotifications((prev) =>
+        prev.map((n) =>
+          (n._id || n.id) === (notification._id || notification.id)
+            ? { ...n, read: true, isRead: true }
+            : n,
+        ),
+      );
+    } catch (err) {
+      // fire-and-forget; errors are non-blocking here
+    }
+  };
 
   const handleClose = () => {
     const dashboardPath =
@@ -60,32 +107,55 @@ const Notifications = () => {
             Notifications
           </h1>
 
+          {error && (
+            <p className="text-sm text-red-600 mb-3" role="alert">
+              {error}
+            </p>
+          )}
+
           <div className="bg-[#E8F5E9] rounded-lg overflow-hidden">
-            {notifications.map((notification, index) => (
-              <div
-                key={notification.id}
-                className={`p-4 flex items-start justify-between ${
-                  index !== notifications.length - 1
-                    ? "border-b border-gray-200"
-                    : ""
-                }`}
-              >
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                    {notification.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 mb-1">
-                    {notification.time}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    {notification.description}
-                  </p>
-                </div>
-                <div
-                  className={`w-3 h-3 rounded-full ${notification.color} flex-shrink-0 mt-1`}
-                ></div>
-              </div>
-            ))}
+            {loading && (
+              <div className="p-4 text-sm text-gray-600">Loading…</div>
+            )}
+            {!loading &&
+              notifications.map((notification, index) => {
+                const id = notification._id || notification.id;
+                const title =
+                  notification.title || notification.message || "Notification";
+                const createdAt = notification.createdAt;
+                const time = createdAt
+                  ? new Date(createdAt).toLocaleString()
+                  : "";
+                const description =
+                  notification.description || notification.body || "";
+                const isRead = notification.read || notification.isRead;
+                const color = isRead ? "bg-gray-300" : "bg-[#4A7C59]";
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => markAsRead(notification)}
+                    className={`w-full text-left p-4 flex items-start justify-between ${
+                      index !== notifications.length - 1
+                        ? "border-b border-gray-200"
+                        : ""
+                    } ${isRead ? "opacity-70" : ""}`}
+                  >
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                        {title}
+                      </h3>
+                      <p className="text-xs text-gray-500 mb-1">{time}</p>
+                      {description && (
+                        <p className="text-xs text-gray-600">{description}</p>
+                      )}
+                    </div>
+                    <div
+                      className={`w-3 h-3 rounded-full ${color} flex-shrink-0 mt-1`}
+                    ></div>
+                  </button>
+                );
+              })}
           </div>
 
           {/* Close Button */}

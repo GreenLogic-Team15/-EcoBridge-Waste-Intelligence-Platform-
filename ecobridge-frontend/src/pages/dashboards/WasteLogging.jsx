@@ -14,6 +14,7 @@ const WasteLogging = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [uploadedImage, setUploadedImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [formData, setFormData] = useState({
     description: "",
     wasteCategory: "",
@@ -44,6 +45,7 @@ const WasteLogging = () => {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setUploadedImage(reader.result);
@@ -56,6 +58,7 @@ const WasteLogging = () => {
   const handleTryAgain = () => {
     setShowAIAlert(false);
     setUploadedImage(null);
+    setImageFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
@@ -69,22 +72,31 @@ const WasteLogging = () => {
     e.preventDefault();
     setSubmitError("");
     setAiAnalysis(null);
+    if (!imageFile) {
+      setSubmitError("Image is required. Please upload an image of the waste.");
+      return;
+    }
     setSubmitLoading(true);
 
+    const wasteCondition = formData.condition
+      ? formData.condition[0].toUpperCase() + formData.condition.slice(1)
+      : "Fresh";
+
+    const body = new FormData();
+    body.append("image", imageFile);
+    body.append("wasteCategory", formData.wasteCategory || "plastic");
+    body.append("description", formData.description || "");
+    body.append("quantity", String(Number(formData.quantity || 0)));
+    body.append("wasteCondition", wasteCondition);
+    body.append("pickupAddress", formData.pickupAddress || "");
+    body.append("availableDate", formData.availableDate || "");
+    body.append("availableTime", formData.availableTime || "");
+    body.append("urgency", formData.urgency || "Normal");
+    body.append("status", "Draft");
+    if (formData.price) body.append("price", String(Number(formData.price)));
+
     api
-      .post("/api/waste", {
-        wasteCategory: formData.wasteCategory,
-        quantity: Number(formData.quantity || 0),
-        pickupAddress: formData.pickupAddress,
-        availableDate: formData.availableDate,
-        availableTime: formData.availableTime,
-        description: formData.description,
-        wasteCondition: formData.condition
-          ? formData.condition[0].toUpperCase() + formData.condition.slice(1)
-          : undefined,
-        urgency: formData.urgency,
-        price: formData.price ? Number(formData.price) : undefined,
-      })
+      .post("/api/waste", body)
       .then((res) => {
         const analysis = res.data?.aiAnalysis || null;
         setAiAnalysis(analysis);
@@ -92,6 +104,7 @@ const WasteLogging = () => {
       .catch((err) => {
         setSubmitError(
           err.response?.data?.message ||
+            err.response?.data?.msg ||
             "Unable to submit waste log. Please try again.",
         );
       })

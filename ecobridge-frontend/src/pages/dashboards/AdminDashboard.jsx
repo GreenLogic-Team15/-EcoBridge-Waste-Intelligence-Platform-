@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Search, Calendar, ChevronUp, ChevronDown } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Search, Calendar } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -8,97 +8,140 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import Sidebar from "../../components/layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
+import { api } from "../../services/apiClient";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { userType } = useAuth();
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    api
+      .get("/api/admin/dashboard")
+      .then((res) => {
+        if (cancelled) return;
+        setDashboard(res.data || {});
+      })
+      .catch((err) => {
+        if (cancelled) return;
+
+        // #region agent log
+        fetch(
+          "http://127.0.0.1:7507/ingest/56b395a6-7fc8-4b95-993b-a061c9e4db11",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Debug-Session-Id": "8f2768",
+            },
+            body: JSON.stringify({
+              sessionId: "8f2768",
+              runId: "admin-dashboard",
+              hypothesisId: "admin-dashboard",
+              location:
+                "src/pages/dashboards/AdminDashboard.jsx:useEffect fetch",
+              message: "Admin dashboard fetch failed",
+              data: {
+                message: err.message,
+                status: err.response?.status,
+                url: err.config?.url,
+              },
+              timestamp: Date.now(),
+            }),
+          },
+        ).catch(() => {});
+        // #endregion agent log
+
+        setError(
+          err.response?.data?.message ||
+            "Unable to load admin dashboard. Please try again.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const overview = dashboard?.overview || {};
+  const impact = dashboard?.environmentalImpact || {};
+  const monthlyTrends = dashboard?.monthlyTrends || [];
+  const wasteTrends = dashboard?.wasteTrends || [];
+  const activities = dashboard?.recentActivities || dashboard?.activities || [];
 
   // Stats data with circular progress
   const stats = [
     {
       label: "Total Waste Generated",
-      value: "12,450",
+      value: overview.totalWasteGeneratedKg ?? 0,
       unit: "Kg",
-      change: "+5.2% from last month",
+      change: "",
       percentage: 75,
       color: "#4A7C59",
     },
     {
-      label: "Waste Segregated",
-      value: "8,750",
-      unit: "Kg",
-      change: "+8.1% from last month",
+      label: "Active Requests",
+      value: overview.activeRequests ?? 0,
+      unit: "",
+      change: "",
       percentage: 60,
       color: "#4A7C59",
     },
     {
-      label: "Environmental Impact",
-      value: "4,320",
-      unit: "Kg CO2e",
-      change: "+3.7% from last month",
+      label: "Completed Requests",
+      value: overview.completedRequests ?? 0,
+      unit: "",
+      change: "",
       percentage: 45,
       color: "#4A7C59",
     },
     {
-      label: "SDG 15 Alignment",
-      value: "85",
-      unit: "%",
-      change: "+2.5% from last month",
-      percentage: 85,
+      label: "CO₂ Saved / SDG",
+      value: impact.co2SavedKg ?? 0,
+      unit: "Kg CO₂e",
+      change:
+        impact.sdgAligned !== undefined
+          ? `SDG aligned: ${impact.sdgAligned}%`
+          : "",
+      percentage: impact.sdgAligned ?? 50,
       color: "#4A7C59",
     },
   ];
 
-  // Chart data
-  const wasteData = [
-    { month: "Feb", value: 100 },
-    { month: "Mar", value: 120 },
-    { month: "Apr", value: 80 },
-    { month: "May", value: 40 },
-    { month: "Jun", value: 60 },
-    { month: "Jul", value: 20 },
-  ];
+  const wasteChartData =
+    monthlyTrends.map((m) => ({
+      month: m.month || m.label,
+      value: m.totalKg ?? m.value ?? 0,
+    })) || [];
 
-  const segregationData = [
-    { month: "Feb", value: 45 },
-    { month: "Mar", value: 48 },
-    { month: "Apr", value: 68 },
-    { month: "May", value: 62 },
-    { month: "Jun", value: 82 },
-    { month: "Jul", value: 42 },
-  ];
+  const wasteCategoryData =
+    wasteTrends.map((w) => ({
+      name: w.category || w.wasteCategory || w.label,
+      value: w.totalKg ?? w.value ?? 0,
+    })) || [];
 
-  // Recent activities
-  const activities = [
-    {
-      user: "John Doe",
-      activity: "Waste Entry",
-      status: "Successful",
-      date: "2026-02-30",
-    },
-    {
-      user: "Rhoda O.",
-      activity: "Pickup Request",
-      status: "Successful",
-      date: "2026-02-30",
-    },
-    {
-      user: "Rebecca F.",
-      activity: "Waste Entry",
-      status: "Successful",
-      date: "2026-02-30",
-    },
-    {
-      user: "Bisola A.",
-      activity: "Pickup Request",
-      status: "Successful",
-      date: "2026-02-30",
-    },
+  const PIE_COLORS = [
+    "#4A7C59",
+    "#C4A484",
+    "#2E5C47",
+    "#7CB87C",
+    "#A8D5BA",
+    "#FFB74D",
   ];
 
   // Circular progress component
@@ -153,7 +196,7 @@ const AdminDashboard = () => {
               Welcome Sarah
             </h1>
             <p className="text-sm text-gray-500">
-              Admin Overview ~ February 2026
+              Admin Overview
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -179,21 +222,29 @@ const AdminDashboard = () => {
                 </span>
                 <span className="text-xs text-gray-500">{stat.unit}</span>
               </div>
-              <p className="text-xs text-green-600">{stat.change}</p>
+              {stat.change && (
+                <p className="text-xs text-green-600">{stat.change}</p>
+              )}
             </div>
           ))}
         </div>
 
+        {error && (
+          <p className="text-sm text-red-600 mb-4" role="alert">
+            {error}
+          </p>
+        )}
+
         {/* Charts */}
         <div className="grid grid-cols-2 gap-6 mb-8">
-          {/* Waste Generation Trends */}
+          {/* Waste Generation Trends (monthlyTrends) */}
           <div className="bg-[#E8F5E9] rounded-lg p-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">
               Waste Generation Trends
             </h3>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={wasteData}>
+                <AreaChart data={wasteChartData}>
                   <defs>
                     <linearGradient
                       id="wasteGradient"
@@ -243,31 +294,29 @@ const AdminDashboard = () => {
           {/* Segregation Performance */}
           <div className="bg-[#E8F5E9] rounded-lg p-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">
-              Segregation performance
+              Waste by Category
             </h3>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={segregationData}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="#D1E7DD"
-                  />
-                  <XAxis
-                    dataKey="month"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 10, fill: "#6B7280" }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 10, fill: "#6B7280" }}
-                    ticks={[0, 20, 40, 60, 80]}
-                  />
+                <PieChart>
                   <Tooltip />
-                  <Bar dataKey="value" fill="#4A7C59" radius={[2, 2, 0, 0]} />
-                </BarChart>
+                  <Pie
+                    data={wasteCategoryData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={70}
+                    label
+                  >
+                    {wasteCategoryData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${entry.name}-${index}`}
+                        fill={PIE_COLORS[index % PIE_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                </PieChart>
               </ResponsiveContainer>
             </div>
           </div>

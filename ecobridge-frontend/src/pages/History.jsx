@@ -1,76 +1,122 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Search, Filter, Calendar, ChevronDown, Download } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
 import { useAuth } from "../hooks/useAuth";
+import { api } from "../services/apiClient";
 
 const History = () => {
   const { userType } = useAuth();
   const [filterOpen, setFilterOpen] = useState(false);
   const [dateRange, setDateRange] = useState("Last 30 days");
+  const [historyData, setHistoryData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Sample history data
-  const historyData = [
-    {
-      id: 1,
-      date: "2026-02-20",
-      time: "14:30",
-      activity: "Waste Logged",
-      details: "Organic Waste - 50kg",
-      status: "Completed",
-      location: "EcoFarms #0022",
-      type: "waste",
-    },
-    {
-      id: 2,
-      date: "2026-02-19",
-      time: "10:15",
-      activity: "Pickup Requested",
-      details: "Plastic Bottles - 20kg",
-      status: "Completed",
-      location: "Berg Jeans #0022",
-      type: "pickup",
-    },
-    {
-      id: 3,
-      date: "2026-02-18",
-      time: "16:45",
-      activity: "Waste Logged",
-      details: "Leftover Soaps - 100kg",
-      status: "Pending",
-      location: "Babajide & Co. #0022",
-      type: "waste",
-    },
-    {
-      id: 4,
-      date: "2026-02-17",
-      time: "09:00",
-      activity: "Pickup Completed",
-      details: "Orange Peels - 20kg",
-      status: "Completed",
-      location: "EcoFarms #0022",
-      type: "pickup",
-    },
-    {
-      id: 5,
-      date: "2026-02-16",
-      time: "13:20",
-      activity: "Waste Logged",
-      details: "Aluminium Cans - 15kg",
-      status: "Cancelled",
-      location: "AJ Steel Collectors #0026",
-      type: "waste",
-    },
-    {
-      id: 6,
-      date: "2026-02-15",
-      time: "11:00",
-      activity: "Profile Updated",
-      details: "Changed pickup address",
-      status: "Completed",
-      location: "-",
-      type: "system",
-    },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    Promise.all([
+      api.get("/api/waste/my-logs"),
+      api.get("/api/history").catch(() => ({ data: {} })),
+    ])
+      .then(([logsRes, historyRes]) => {
+        if (cancelled) return;
+
+        const logsPayload = logsRes.data;
+        const wasteLogs = Array.isArray(logsPayload)
+          ? logsPayload
+          : logsPayload?.wasteLogs || [];
+
+        const historyPayload = historyRes.data || {};
+        const pickups = historyPayload?.pickups || [];
+
+        const entries = [];
+
+        wasteLogs.forEach((log) => {
+          const created = log.createdAt || log.availableDate;
+          const d = created ? new Date(created) : new Date();
+          entries.push({
+            id: log._id || log.id,
+            date: d.toISOString().slice(0, 10),
+            time: d.toTimeString().slice(0, 5),
+            activity: "Waste Logged",
+            details: `${log.wasteCategory || "Waste"} - ${
+              log.quantity ?? "-"
+            }`,
+            status: log.status || "Draft",
+            location: log.pickupAddress || log.location || "-",
+            type: "waste",
+          });
+        });
+
+        pickups.forEach((pickup) => {
+          const created = pickup.createdAt || pickup.pickupDate;
+          const d = created ? new Date(created) : new Date();
+          entries.push({
+            id: pickup._id || pickup.id,
+            date: d.toISOString().slice(0, 10),
+            time: d.toTimeString().slice(0, 5),
+            activity: "Pickup",
+            details: `${pickup.wasteCategory || "Waste"} - ${
+              pickup.quantity ?? "-"
+            }`,
+            status: pickup.status || pickup.pickupStatus || "Requested",
+            location: pickup.pickupAddress || pickup.location || "-",
+            type: "pickup",
+          });
+        });
+
+        entries.sort((a, b) => {
+          const aKey = `${a.date} ${a.time}`;
+          const bKey = `${b.date} ${b.time}`;
+          return new Date(bKey) - new Date(aKey);
+        });
+
+        setHistoryData(entries);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        // #region agent log
+        fetch(
+          "http://127.0.0.1:7507/ingest/56b395a6-7fc8-4b95-993b-a061c9e4db11",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Debug-Session-Id": "8f2768",
+            },
+            body: JSON.stringify({
+              sessionId: "8f2768",
+              runId: "history-run",
+              hypothesisId: "H-history",
+              location: "src/pages/History.jsx:useEffect fetch",
+              message: "History fetch failed",
+              data: {
+                message: err.message,
+                status: err.response?.status,
+                url: err.config?.url,
+              },
+              timestamp: Date.now(),
+            }),
+          },
+        ).catch(() => {});
+        // #endregion agent log
+
+        setError(
+          err.response?.data?.message ||
+            "Unable to load history. Please try again.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -213,6 +259,11 @@ const History = () => {
 
         {/* History Table */}
         <div className="bg-white rounded-lg overflow-hidden">
+          {error && (
+            <div className="p-4 text-sm text-red-600" role="alert">
+              {error}
+            </div>
+          )}
           <table className="w-full">
             <thead>
               <tr className="bg-[#F5F5F0]">
@@ -237,43 +288,54 @@ const History = () => {
               </tr>
             </thead>
             <tbody>
-              {historyData.map((item) => (
-                <tr
-                  key={item.id}
-                  className="border-b border-gray-50 last:border-0 hover:bg-gray-50"
-                >
-                  <td className="py-4 px-4">
-                    <p className="text-sm text-gray-900">{item.date}</p>
-                    <p className="text-xs text-gray-500">{item.time}</p>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <span>{getActivityIcon(item.type)}</span>
-                      <span className="text-sm text-gray-900">
-                        {item.activity}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-600">
-                    {item.details}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-600">
-                    {item.location}
-                  </td>
-                  <td className="py-4 px-4">
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${getStatusColor(item.status)}`}
-                    >
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <button className="text-xs text-[#2E5C47] hover:underline">
-                      View Details
-                    </button>
+              {loading && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="py-4 px-4 text-sm text-gray-600 text-center"
+                  >
+                    Loading history…
                   </td>
                 </tr>
-              ))}
+              )}
+              {!loading &&
+                historyData.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="border-b border-gray-50 last:border-0 hover:bg-gray-50"
+                  >
+                    <td className="py-4 px-4">
+                      <p className="text-sm text-gray-900">{item.date}</p>
+                      <p className="text-xs text-gray-500">{item.time}</p>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-2">
+                        <span>{getActivityIcon(item.type)}</span>
+                        <span className="text-sm text-gray-900">
+                          {item.activity}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-600">
+                      {item.details}
+                    </td>
+                    <td className="py-4 px-4 text-sm text-gray-600">
+                      {item.location}
+                    </td>
+                    <td className="py-4 px-4">
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${getStatusColor(item.status)}`}
+                      >
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <button className="text-xs text-[#2E5C47] hover:underline">
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>

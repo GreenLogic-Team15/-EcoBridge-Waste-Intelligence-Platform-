@@ -7,6 +7,8 @@ const Login = lazy(() => import("./pages/auth/Login"));
 const SignupAdmin = lazy(() => import("./pages/auth/SignupAdmin"));
 const SignupPartner = lazy(() => import("./pages/auth/SignupPartner"));
 const SignupBusiness = lazy(() => import("./pages/auth/SignupBusiness"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
 
 const PartnerHomepage = lazy(() => import("./pages/dashboards/PartnerHomepage"));
 const AdminDashboard = lazy(() => import("./pages/dashboards/AdminDashboard"));
@@ -44,6 +46,8 @@ function AppContent() {
         <Route path="/signup-admin" element={<SignupAdmin />} />
         <Route path="/signup-partner" element={<SignupPartner />} />
         <Route path="/signup-business" element={<SignupBusiness />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Protected Routes */}
         <Route

@@ -160,6 +160,47 @@ const Messages = () => {
     }
   };
 
+  const getOtherParticipant = () => {
+    if (!selectedConversation) return null;
+    return (
+      (selectedConversation.participants || []).find((p) => !p.isCurrentUser) ||
+      selectedConversation.participants?.[0] ||
+      null
+    );
+  };
+
+  const markSuccessful = async () => {
+    if (!selectedConversation?._id) return;
+    const other = getOtherParticipant();
+    if (!other || !(other._id || other.id)) return;
+    try {
+      await api.put(
+        `/api/messages/conversation/${selectedConversation._id}/successful`,
+        { partnerId: other._id || other.id },
+      );
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Unable to mark partner successful. Please try again.",
+      );
+    }
+  };
+
+  const markCompleted = async () => {
+    if (!selectedConversation?._id) return;
+    try {
+      await api.put(
+        `/api/messages/conversation/${selectedConversation._id}/completed`,
+        state.wasteLogId ? { wasteLogId: state.wasteLogId } : undefined,
+      );
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Unable to mark pickup completed. Please try again.",
+      );
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-white">
       <Sidebar userType={userType || "partner"} />
@@ -174,8 +215,28 @@ const Messages = () => {
               Chat with SMEs and partners about pickup requests.
             </p>
           </div>
-          <div className="flex items-center justify-center w-9 h-9 rounded-full bg-[#2E5C47] text-white">
-            <MessageCircle className="w-4 h-4" />
+          <div className="flex items-center gap-3">
+            {userType === "business" && selectedConversation && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={markSuccessful}
+                  className="px-3 py-1.5 rounded-full text-[11px] bg-[#E8F5E9] text-[#2E5C47] hover:bg-[#D1E7DD]"
+                >
+                  Mark partner successful
+                </button>
+                <button
+                  type="button"
+                  onClick={markCompleted}
+                  className="px-3 py-1.5 rounded-full text-[11px] bg-[#4A7C59] text-white hover:bg-[#3d6649]"
+                >
+                  Mark pickup completed
+                </button>
+              </div>
+            )}
+            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-[#2E5C47] text-white">
+              <MessageCircle className="w-4 h-4" />
+            </div>
           </div>
         </header>
 

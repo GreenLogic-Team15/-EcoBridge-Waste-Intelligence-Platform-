@@ -22,6 +22,7 @@ const PickupRequests = () => {
   const [error, setError] = useState("");
   const [pickups, setPickups] = useState([]);
   const [callTarget, setCallTarget] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -162,6 +163,57 @@ const PickupRequests = () => {
     () => [{ id: "All", label: "All", color: "bg-gray-400" }, ...PICKUP_STATUSES],
     [],
   );
+
+  const updateStatus = async (id, status) => {
+    if (!id || !status) return;
+    setUpdatingId(id);
+    setError("");
+    try {
+      const res = await api.patch(`/api/pickups/${id}/status`, { status });
+      const updated = res.data?.pickup || res.data;
+      setPickups((prev) =>
+        prev.map((p) => {
+          if ((p._id || p.id) !== id) return p;
+          return { ...p, ...(updated || {}), status };
+        }),
+      );
+    } catch (err) {
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7507/ingest/56b395a6-7fc8-4b95-993b-a061c9e4db11",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "8f2768",
+          },
+          body: JSON.stringify({
+            sessionId: "8f2768",
+            runId: "pickup-status",
+            hypothesisId: "pickup-status",
+            location:
+              "src/pages/dashboards/PickupRequests.jsx:updateStatus catch",
+            message: "Pickup status update failed",
+            data: {
+              id,
+              status,
+              message: err.message,
+              backendStatus: err.response?.status,
+            },
+            timestamp: Date.now(),
+          }),
+        },
+      ).catch(() => {});
+      // #endregion agent log
+
+      setError(
+        err.response?.data?.message ||
+          "Unable to update pickup status. Please try again.",
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const handleClose = () => {
     // Close button action
@@ -324,9 +376,28 @@ const PickupRequests = () => {
 
               {/* Footer */}
               <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-600">
-                  {request.driver || "View details"}
-                </p>
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs text-gray-600">
+                    {request.driver || "View details"}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <label className="text-[10px] text-gray-500">
+                      Status:
+                    </label>
+                    <select
+                      className="text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-white"
+                      value={request.status}
+                      onChange={(e) => updateStatus(request.id, e.target.value)}
+                      disabled={updatingId === request.id}
+                    >
+                      <option value="None">None</option>
+                      <option value="Requested">Requested</option>
+                      <option value="Accepted">Accepted</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setCallTarget(request)}
