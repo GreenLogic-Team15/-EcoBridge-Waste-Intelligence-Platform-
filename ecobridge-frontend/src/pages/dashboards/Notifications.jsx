@@ -40,7 +40,13 @@ const Notifications = () => {
   ];
 
   const handleClose = () => {
-    navigate("/admin-dashboard");
+    const dashboardPath =
+      userType === "partner"
+        ? "/partner-homepage"
+        : userType === "business"
+          ? "/pickup-requests"
+          : "/admin-dashboard";
+    navigate(dashboardPath);
   };
 
   return (

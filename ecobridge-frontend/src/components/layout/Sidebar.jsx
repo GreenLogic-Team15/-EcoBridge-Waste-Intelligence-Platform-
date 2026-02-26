@@ -54,29 +54,6 @@ const Sidebar = ({ userType }) => {
   };
 
   const menuItems = getMenuItems();
-
-  // #region agent log
-  fetch("http://127.0.0.1:7603/ingest/7184b5bb-95a1-4921-ae63-1dda68a88a88", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "286b84",
-    },
-    body: JSON.stringify({
-      sessionId: "286b84",
-      runId: "sidebar-pre-click",
-      hypothesisId: "H1",
-      location: "Sidebar.jsx:102",
-      message: "Sidebar menu items computed",
-      data: {
-        userType,
-        currentPath: location.pathname,
-        menu: menuItems.map((item) => ({ id: item.id, path: item.path })),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion agent log
   const currentPath = location.pathname;
 
   return (
@@ -89,36 +66,7 @@ const Sidebar = ({ userType }) => {
           return (
             <button
               key={item.id}
-              onClick={() => {
-                // #region agent log
-                fetch(
-                  "http://127.0.0.1:7603/ingest/7184b5bb-95a1-4921-ae63-1dda68a88a88",
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      "X-Debug-Session-Id": "286b84",
-                    },
-                    body: JSON.stringify({
-                      sessionId: "286b84",
-                      runId: "sidebar-click",
-                      hypothesisId: "H2",
-                      location: "Sidebar.jsx:115",
-                      message: "Sidebar item clicked",
-                      data: {
-                        userType,
-                        currentPath: location.pathname,
-                        targetId: item.id,
-                        targetPath: item.path,
-                      },
-                      timestamp: Date.now(),
-                    }),
-                  },
-                ).catch(() => {});
-                // #endregion agent log
-
-                navigate(item.path);
-              }}
+              onClick={() => navigate(item.path)}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors ${
                 isActive
                   ? "bg-[#2E5C47] text-white"
