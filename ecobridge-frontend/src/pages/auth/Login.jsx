@@ -1,9 +1,57 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { api } from "../../services/apiClient";
+import { useAuth } from "../../hooks/useAuth";
 
-const Login = ({ onLogin }) => {
+const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [rememberMe, setRememberMe] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const mapRoleToUserType = (role) => {
+    if (!role) return null;
+    const r = role.toLowerCase();
+    if (r === "partner") return "partner";
+    if (r === "sme" || r === "business") return "business";
+    if (r === "admin") return "admin";
+    return null;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const response = await api.post("/api/auth/login", {
+        email,
+        password,
+      });
+
+      const { token, role } = response.data || {};
+      const userType = mapRoleToUserType(role);
+      login(userType || "", token);
+
+      const dashboardPath =
+        userType === "partner"
+          ? "/partner-homepage"
+          : userType === "business"
+            ? "/pickup-requests"
+            : "/admin-dashboard";
+
+      navigate(dashboardPath);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Unable to sign in. Please check your credentials and try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -46,14 +94,15 @@ const Login = ({ onLogin }) => {
             Hi, Welcome back!
           </h2>
 
-          {/* Form Fields */}
-          <div className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm text-gray-600 mb-1.5">
                 Email
               </label>
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
               />
@@ -65,6 +114,8 @@ const Login = ({ onLogin }) => {
               </label>
               <input
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
               />
@@ -89,12 +140,19 @@ const Login = ({ onLogin }) => {
               </button>
             </div>
 
+            {error && (
+              <p className="text-sm text-red-600 mt-2" role="alert">
+                {error}
+              </p>
+            )}
+
             {/* Login Button */}
             <button
-              onClick={onLogin}
+              type="submit"
+              disabled={loading}
               className="w-full bg-[#4A7C59] hover:bg-[#3d6649] text-white font-medium py-3 rounded-md transition-colors mt-2"
             >
-              Login
+              {loading ? "Signing in..." : "Login"}
             </button>
 
             {/* Divider */}
@@ -150,7 +208,7 @@ const Login = ({ onLogin }) => {
                 Sign Up
               </button>
             </p>
-          </div>
+          </form>
         </div>
       </div>
     </div>

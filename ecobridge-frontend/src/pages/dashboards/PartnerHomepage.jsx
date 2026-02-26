@@ -1,108 +1,231 @@
-import React, { useState } from "react";
-import { Search, Phone, MessageSquare, MapPin, User, LayoutDashboard } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Search,
+  Phone,
+  MessageSquare,
+  MapPin,
+  User,
+  LayoutDashboard,
+} from "lucide-react";
 import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
 import Sidebar from "../../components/layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
+import { api } from "../../services/apiClient";
+import { WASTE_CATEGORIES } from "../../constants/wasteOptions";
 
 const PartnerHomepage = () => {
-  const [activeFilter, setActiveFilter] = useState("all");
+  const navigate = useNavigate();
+  const [category, setCategory] = useState("");
+  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [nearbyOnly, setNearbyOnly] = useState(false);
+  const [search, setSearch] = useState("");
+  const [coords, setCoords] = useState(null);
+  const [maxDistance, setMaxDistance] = useState(10000);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [wastes, setWastes] = useState([]);
+
+  const [callTarget, setCallTarget] = useState(null);
+  const [requestTarget, setRequestTarget] = useState(null);
+  const [requestForm, setRequestForm] = useState({
+    quantity: "",
+    pickupDate: "",
+  });
+  const [requestLoading, setRequestLoading] = useState(false);
+  const [requestError, setRequestError] = useState("");
   const { userType } = useAuth();
 
-  const filters = [
-    { id: "all", label: "All", count: 18 },
-    { id: "organic", label: "Organic", count: 2, color: "bg-green-500" },
-    { id: "inorganic", label: "Inorganic", count: 3, color: "bg-yellow-400" },
-    { id: "nearby", label: "Nearby", count: 1, color: "bg-teal-400" },
-    { id: "urgent", label: "Urgent", count: 9, color: "bg-red-500" },
-    { id: "packaging", label: "Packaging", count: 1, color: "bg-blue-400" },
-  ];
+  const filters = useMemo(() => {
+    const categoryFilters = [
+      { id: "", label: "All" },
+      ...WASTE_CATEGORIES.map((c) => ({ id: c.value, label: c.label })),
+    ];
+    return [
+      ...categoryFilters,
+      { id: "__urgent__", label: "Urgent" },
+      { id: "__nearby__", label: "Nearby" },
+    ];
+  }, []);
 
-  const wasteListings = [
-    {
-      id: 1,
-      title: "Leftover Soaps 100kg",
-      status: "Urgent",
-      statusColor: "bg-orange-400",
-      wasteType: "Organic",
-      wasteColor: "bg-green-500",
-      pickupTime: "Today, Pickup at 2pm",
-      location: "EcoFarms #0022",
-      postedTime: "Posted 15 minutes ago",
-      contact: "David at EcoFarms",
-      image:
-        "https://images.unsplash.com/photo-1600857062241-98e5dba7f214?auto=format&fit=crop&q=80&w=120&h=120",
-    },
-    {
-      id: 2,
-      title: "Orange Peels 20kg",
-      status: "New",
-      statusColor: "bg-green-500",
-      wasteType: "Organic",
-      wasteColor: "bg-green-500",
-      pickupTime: "Today, Pickup at 2pm",
-      location: "EcoFarms #0022",
-      postedTime: "Posted 15 minutes ago",
-      contact: "David at EcoFarms",
-      image:
-        "https://images.unsplash.com/photo-1596451190630-186aff535bf2?auto=format&fit=crop&q=80&w=120&h=120",
-    },
-    {
-      id: 3,
-      title: "Orange Peels 20kg",
-      status: "New",
-      statusColor: "bg-green-500",
-      wasteType: "Organic",
-      wasteColor: "bg-green-500",
-      pickupTime: "Today, Pickup at 2pm",
-      location: "EcoFarms #0022",
-      postedTime: "Posted 15 minutes ago",
-      contact: "David at EcoFarms",
-      image:
-        "https://images.unsplash.com/photo-1596451190630-186aff535bf2?auto=format&fit=crop&q=80&w=120&h=120",
-    },
-    {
-      id: 4,
-      title: "Leftover Soaps 100kg",
-      status: "Urgent",
-      statusColor: "bg-orange-400",
-      wasteType: "Organic",
-      wasteColor: "bg-green-500",
-      pickupTime: "Today, Pickup at 2pm",
-      location: "EcoFarms #0022",
-      postedTime: "Posted 15 minutes ago",
-      contact: "David at EcoFarms",
-      image:
-        "https://images.unsplash.com/photo-1600857062241-98e5dba7f214?auto=format&fit=crop&q=80&w=120&h=120",
-    },
-    {
-      id: 5,
-      title: "Leftover Soaps 100kg",
-      status: "Urgent",
-      statusColor: "bg-orange-400",
-      wasteType: "Organic",
-      wasteColor: "bg-green-500",
-      pickupTime: "Today, Pickup at 2pm",
-      location: "EcoFarms #0022",
-      postedTime: "Posted 15 minutes ago",
-      contact: "David at EcoFarms",
-      image:
-        "https://images.unsplash.com/photo-1600857062241-98e5dba7f214?auto=format&fit=crop&q=80&w=120&h=120",
-    },
-    {
-      id: 6,
-      title: "Orange Peels 20kg",
-      status: "New",
-      statusColor: "bg-green-500",
-      wasteType: "Organic",
-      wasteColor: "bg-green-500",
-      pickupTime: "Today, Pickup at 2pm",
-      location: "EcoFarms #0022",
-      postedTime: "Posted 15 minutes ago",
-      contact: "David at EcoFarms",
-      image:
-        "https://images.unsplash.com/photo-1596451190630-186aff535bf2?auto=format&fit=crop&q=80&w=120&h=120",
-    },
-  ];
+  useEffect(() => {
+    if (!nearbyOnly) return;
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: false, timeout: 7000 },
+    );
+  }, [nearbyOnly]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    const params = {};
+    if (category) params.category = category;
+    if (urgentOnly) params.urgent = true;
+    if (nearbyOnly && coords) {
+      params.nearby = `${coords.lat},${coords.lng}`;
+      params.maxDistance = maxDistance;
+    }
+
+    api
+      .get("/api/partner/wastes", { params })
+      .then((res) => {
+        if (cancelled) return;
+        const payload = res.data;
+        const list =
+          payload?.wastes ||
+          payload?.data ||
+          payload?.wasteLogs ||
+          (Array.isArray(payload) ? payload : []);
+        setWastes(Array.isArray(list) ? list : []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(
+          err.response?.data?.message ||
+            "Unable to load available wastes. Please try again.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [category, urgentOnly, nearbyOnly, coords, maxDistance]);
+
+  const normalizedListings = useMemo(() => {
+    const text = search.trim().toLowerCase();
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
+    const all = wastes.map((w) => {
+      const id = w._id || w.id;
+      const wasteCategory = w.wasteCategory || w.category;
+      const qty = w.quantity ?? w.qty;
+      const title =
+        w.title ||
+        w.wasteSummary?.description ||
+        w.description ||
+        `${wasteCategory || "Waste"}${qty ? ` • ${qty}kg` : ""}`;
+      const urgency = w.urgency || w.wasteSummary?.urgency;
+      const statusLabel =
+        urgency === "Urgent" ? "Urgent" : urgency ? String(urgency) : "Normal";
+      const statusColor = urgency === "Urgent" ? "bg-red-500" : "bg-green-500";
+      const categoryLabel =
+        WASTE_CATEGORIES.find((c) => c.value === wasteCategory)?.label ||
+        wasteCategory ||
+        "-";
+
+      const availableDate = w.availableDate || w.wasteSummary?.availableDate;
+      const availableTime = w.availableTime || w.wasteSummary?.availableTime;
+      const pickupTime =
+        availableDate || availableTime
+          ? `${availableDate || ""}${availableTime ? ` • ${availableTime}` : ""}`
+          : "Pickup time not set";
+      const location = w.pickupAddress || w.wasteSummary?.pickupAddress || "-";
+      const postedTime = w.createdAt
+        ? `Posted ${new Date(w.createdAt).toLocaleString()}`
+        : "";
+      const createdBy = w.createdBy || w.owner || w.business || w.user;
+      const contact =
+        createdBy?.name || createdBy?.fullName
+          ? `${createdBy?.name || createdBy?.fullName}`
+          : "Business";
+      const imagePath = w.imagePath || w.wasteSummary?.imagePath;
+      const image = imagePath
+        ? imagePath.startsWith("http")
+          ? imagePath
+          : `${baseUrl}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`
+        : "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=120&h=120";
+
+      const receiverId =
+        createdBy?._id ||
+        createdBy?.id ||
+        w.smeId ||
+        w.businessId ||
+        w.userId ||
+        null;
+
+      return {
+        raw: w,
+        id,
+        title,
+        statusLabel,
+        statusColor,
+        categoryLabel,
+        wasteColor: "bg-[#2E5C47]",
+        pickupTime,
+        location,
+        postedTime,
+        contact,
+        image,
+        wasteLogId: id,
+        receiverId,
+      };
+    });
+
+    if (!text) return all;
+    return all.filter((w) => (w.title || "").toLowerCase().includes(text));
+  }, [wastes, search]);
+
+  const applyFilter = (id) => {
+    if (id === "__urgent__") {
+      setUrgentOnly((v) => !v);
+      return;
+    }
+    if (id === "__nearby__") {
+      setNearbyOnly((v) => !v);
+      return;
+    }
+    setCategory(id);
+  };
+
+  const clearFilters = () => {
+    setCategory("");
+    setUrgentOnly(false);
+    setNearbyOnly(false);
+    setSearch("");
+    setCoords(null);
+    setMaxDistance(10000);
+  };
+
+  const openChat = (listing) => {
+    navigate("/messages", {
+      state: {
+        receiverId: listing.receiverId,
+        wasteLogId: listing.wasteLogId,
+        title: listing.title,
+      },
+    });
+  };
+
+  const submitPickupRequest = async () => {
+    if (!requestTarget) return;
+    setRequestError("");
+    setRequestLoading(true);
+    try {
+      await api.post("/api/partner/request-pickup", {
+        wasteLogId: requestTarget.wasteLogId,
+        quantity: Number(requestForm.quantity || 0),
+        pickupDate: requestForm.pickupDate,
+      });
+      setRequestTarget(null);
+      setRequestForm({ quantity: "", pickupDate: "" });
+    } catch (err) {
+      setRequestError(
+        err.response?.data?.message ||
+          "Unable to request pickup. Please try again.",
+      );
+    } finally {
+      setRequestLoading(false);
+    }
+  };
 
   // Google Maps configuration
   const mapContainerStyle = {
@@ -159,22 +282,23 @@ const PartnerHomepage = () => {
             {filters.map((filter) => (
               <button
                 key={filter.id}
-                onClick={() => setActiveFilter(filter.id)}
+                onClick={() => applyFilter(filter.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  activeFilter === filter.id
+                  (filter.id && filter.id === category) ||
+                  (filter.id === "" && category === "") ||
+                  (filter.id === "__urgent__" && urgentOnly) ||
+                  (filter.id === "__nearby__" && nearbyOnly)
                     ? "bg-gray-700 text-white"
                     : "bg-white text-gray-600 border border-gray-200"
                 }`}
               >
                 {filter.label}
-                <span
-                  className={`text-[10px] w-5 h-5 rounded-full flex items-center justify-center text-white ${filter.id === "all" ? "bg-gray-500" : filter.color}`}
-                >
-                  {filter.count}
-                </span>
               </button>
             ))}
-            <button className="text-xs text-[#2E5C47] font-medium ml-2">
+            <button
+              onClick={clearFilters}
+              className="text-xs text-[#2E5C47] font-medium ml-2"
+            >
               Clear filter
             </button>
           </div>
@@ -183,6 +307,8 @@ const PartnerHomepage = () => {
             <input
               type="text"
               placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               className="w-48 pl-3 pr-8 py-1.5 bg-white border border-gray-200 rounded text-xs focus:outline-none"
             />
             <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -193,7 +319,20 @@ const PartnerHomepage = () => {
         <div className="flex gap-4">
           {/* Waste Listings - 50% */}
           <div className="w-1/2 grid grid-cols-2 gap-3">
-            {wasteListings.map((listing) => (
+            {error && (
+              <div className="col-span-2 text-sm text-red-600" role="alert">
+                {error}
+              </div>
+            )}
+            {loading && (
+              <div className="col-span-2 text-sm text-gray-600">Loading…</div>
+            )}
+            {!loading && !error && normalizedListings.length === 0 && (
+              <div className="col-span-2 text-sm text-gray-600">
+                No waste listings match your filters.
+              </div>
+            )}
+            {normalizedListings.map((listing) => (
               <div
                 key={listing.id}
                 className="bg-white rounded-lg p-3 shadow-sm border border-gray-100"
@@ -204,12 +343,12 @@ const PartnerHomepage = () => {
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded text-white font-medium ${listing.statusColor}`}
                       >
-                        {listing.status}
+                        {listing.statusLabel}
                       </span>
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded text-white font-medium ${listing.wasteColor}`}
                       >
-                        {listing.wasteType}
+                        {listing.categoryLabel}
                       </span>
                     </div>
 
@@ -237,7 +376,14 @@ const PartnerHomepage = () => {
                   />
                 </div>
 
-                <button className="w-full bg-[#4A7C59] hover:bg-[#3d6649] text-white text-xs font-medium py-2 rounded mb-2">
+                <button
+                  onClick={() => {
+                    setRequestTarget(listing);
+                    setRequestError("");
+                    setRequestForm({ quantity: "", pickupDate: "" });
+                  }}
+                  className="w-full bg-[#4A7C59] hover:bg-[#3d6649] text-white text-xs font-medium py-2 rounded mb-2"
+                >
                   Request Pickup
                 </button>
 
@@ -246,10 +392,20 @@ const PartnerHomepage = () => {
                     {listing.contact}
                   </span>
                   <div className="flex gap-2">
-                    <button className="p-1 text-[#2E5C47] hover:bg-gray-100 rounded">
+                    <button
+                      onClick={() => setCallTarget(listing)}
+                      className="p-1 text-[#2E5C47] hover:bg-gray-100 rounded"
+                      aria-label="Call"
+                    >
                       <Phone className="w-3.5 h-3.5" />
                     </button>
-                    <button className="p-1 text-[#2E5C47] hover:bg-gray-100 rounded">
+                    <button
+                      onClick={() => openChat(listing)}
+                      className="p-1 text-[#2E5C47] hover:bg-gray-100 rounded disabled:opacity-40"
+                      aria-label="Chat"
+                      disabled={!listing.receiverId}
+                      title={!listing.receiverId ? "Missing recipient" : "Open chat"}
+                    >
                       <MessageSquare className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -294,6 +450,95 @@ const PartnerHomepage = () => {
           </div>
         </div>
       </div>
+
+      {/* Simple call modal */}
+      {callTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-lg w-full max-w-sm p-5">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">
+              Calling
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">{callTarget.contact}</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setCallTarget(null)}
+                className="px-4 py-2 text-sm rounded border border-gray-200 hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => setCallTarget(null)}
+                className="px-4 py-2 text-sm rounded bg-[#4A7C59] text-white hover:bg-[#3d6649]"
+              >
+                End call
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Request pickup modal */}
+      {requestTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md p-5">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">
+              Request pickup
+            </h3>
+            <p className="text-xs text-gray-600 mb-4">{requestTarget.title}</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Quantity (kg)
+                </label>
+                <input
+                  type="number"
+                  value={requestForm.quantity}
+                  onChange={(e) =>
+                    setRequestForm((p) => ({ ...p, quantity: e.target.value }))
+                  }
+                  className="w-full bg-[#F0F5F2] border-0 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Pickup date
+                </label>
+                <input
+                  type="date"
+                  value={requestForm.pickupDate}
+                  onChange={(e) =>
+                    setRequestForm((p) => ({ ...p, pickupDate: e.target.value }))
+                  }
+                  className="w-full bg-[#F0F5F2] border-0 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                />
+              </div>
+            </div>
+
+            {requestError && (
+              <p className="text-sm text-red-600 mt-3" role="alert">
+                {requestError}
+              </p>
+            )}
+
+            <div className="flex gap-3 justify-end mt-5">
+              <button
+                onClick={() => setRequestTarget(null)}
+                className="px-4 py-2 text-sm rounded border border-gray-200 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitPickupRequest}
+                disabled={requestLoading}
+                className="px-4 py-2 text-sm rounded bg-[#4A7C59] text-white hover:bg-[#3d6649]"
+              >
+                {requestLoading ? "Submitting…" : "Submit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

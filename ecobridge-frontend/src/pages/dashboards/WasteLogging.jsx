@@ -3,11 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { Upload, Camera, Calendar, Clock, ChevronDown } from "lucide-react";
 import Sidebar from "../../components/layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
+import { api } from "../../services/apiClient";
+import { WASTE_CATEGORIES } from "../../constants/wasteOptions";
 
 const WasteLogging = () => {
   const navigate = useNavigate();
   const { userType } = useAuth();
   const [showAIAlert, setShowAIAlert] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [uploadedImage, setUploadedImage] = useState(null);
   const [formData, setFormData] = useState({
     description: "",
@@ -16,8 +21,8 @@ const WasteLogging = () => {
     unit: "KG",
     condition: "",
     pickupAddress: "123 Yale Street, Guzape, Abuja",
-    availableFrom: "2026-02-15",
-    time: "12:00",
+    availableDate: "2026-02-15",
+    availableTime: "12:00",
     urgency: "Normal",
     mediaUpload: "public",
     price: "",
@@ -57,12 +62,40 @@ const WasteLogging = () => {
 
   const handleConfirm = () => {
     setShowAIAlert(false);
-    navigate("/confirmation");
+    // Keep user on this page so they can submit with detected values.
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    navigate("/confirmation");
+    setSubmitError("");
+    setAiAnalysis(null);
+    setSubmitLoading(true);
+
+    api
+      .post("/api/waste", {
+        wasteCategory: formData.wasteCategory,
+        quantity: Number(formData.quantity || 0),
+        pickupAddress: formData.pickupAddress,
+        availableDate: formData.availableDate,
+        availableTime: formData.availableTime,
+        description: formData.description,
+        wasteCondition: formData.condition
+          ? formData.condition[0].toUpperCase() + formData.condition.slice(1)
+          : undefined,
+        urgency: formData.urgency,
+        price: formData.price ? Number(formData.price) : undefined,
+      })
+      .then((res) => {
+        const analysis = res.data?.aiAnalysis || null;
+        setAiAnalysis(analysis);
+      })
+      .catch((err) => {
+        setSubmitError(
+          err.response?.data?.message ||
+            "Unable to submit waste log. Please try again.",
+        );
+      })
+      .finally(() => setSubmitLoading(false));
   };
 
   const handleChange = (field, value) => {
@@ -263,11 +296,11 @@ const WasteLogging = () => {
                       className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                     >
                       <option value="">Select Category</option>
-                      <option value="organic">Organic</option>
-                      <option value="plastic">Plastic</option>
-                      <option value="metal">Metal</option>
-                      <option value="paper">Paper</option>
-                      <option value="glass">Glass</option>
+                      {WASTE_CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value}>
+                          {c.label}
+                        </option>
+                      ))}
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   </div>
@@ -303,7 +336,8 @@ const WasteLogging = () => {
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
-                        type="checkbox"
+                        type="radio"
+                        name="wasteCondition"
                         checked={formData.condition === "fresh"}
                         onChange={() => handleChange("condition", "fresh")}
                         className="w-4 h-4 rounded border-gray-300 text-[#2E5C47] focus:ring-[#2E5C47]"
@@ -312,7 +346,8 @@ const WasteLogging = () => {
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
-                        type="checkbox"
+                        type="radio"
+                        name="wasteCondition"
                         checked={formData.condition === "stored"}
                         onChange={() => handleChange("condition", "stored")}
                         className="w-4 h-4 rounded border-gray-300 text-[#2E5C47] focus:ring-[#2E5C47]"
@@ -366,9 +401,9 @@ const WasteLogging = () => {
                     <div className="relative">
                       <input
                         type="date"
-                        value={formData.availableFrom}
+                        value={formData.availableDate}
                         onChange={(e) =>
-                          handleChange("availableFrom", e.target.value)
+                          handleChange("availableDate", e.target.value)
                         }
                         className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                       />
@@ -381,8 +416,10 @@ const WasteLogging = () => {
                     <div className="relative">
                       <input
                         type="time"
-                        value={formData.time}
-                        onChange={(e) => handleChange("time", e.target.value)}
+                        value={formData.availableTime}
+                        onChange={(e) =>
+                          handleChange("availableTime", e.target.value)
+                        }
                         className="w-full bg-white border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                       />
                     </div>
@@ -477,11 +514,51 @@ const WasteLogging = () => {
               </button>
               <button
                 type="submit"
+                disabled={submitLoading}
                 className="flex-1 px-4 py-2.5 bg-[#4A7C59] text-white text-sm rounded-lg hover:bg-[#3d6649]"
               >
-                Submit waste log
+                {submitLoading ? "Submitting…" : "Submit waste log"}
               </button>
             </div>
+
+            {submitError && (
+              <p className="text-sm text-red-600 mt-3" role="alert">
+                {submitError}
+              </p>
+            )}
+
+            {aiAnalysis && (
+              <div className="mt-4 bg-[#E8F5E9] rounded-lg p-4">
+                <p className="text-sm font-semibold text-gray-900 mb-2">
+                  AI Analysis
+                </p>
+                <div className="space-y-1 text-sm text-gray-700">
+                  <div>
+                    <span className="font-medium">Category:</span>{" "}
+                    {aiAnalysis.classification || aiAnalysis.category || "-"}
+                  </div>
+                  <div>
+                    <span className="font-medium">Contamination risk:</span>{" "}
+                    {aiAnalysis.contaminationRisk || "-"}
+                  </div>
+                  <div>
+                    <span className="font-medium">Recommendation:</span>{" "}
+                    {aiAnalysis.recommendation ||
+                      aiAnalysis.recoveryRecommendation ||
+                      "-"}
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/confirmation")}
+                    className="px-4 py-2 bg-[#4A7C59] text-white text-sm rounded hover:bg-[#3d6649]"
+                  >
+                    Continue
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </form>
       </div>

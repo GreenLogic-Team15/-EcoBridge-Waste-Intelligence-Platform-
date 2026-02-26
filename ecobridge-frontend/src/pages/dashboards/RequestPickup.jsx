@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Camera, MapPin, Calendar, ChevronDown, ArrowRight } from "lucide-react";
 import Sidebar from "../../components/layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
+import { WASTE_CATEGORIES, WASTE_SOURCES } from "../../constants/wasteOptions";
 
 const RequestPickup = () => {
   const navigate = useNavigate();
@@ -114,10 +115,11 @@ const RequestPickup = () => {
                     className="w-full bg-[#F0F5F2] border-0 rounded-lg py-3 px-4 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                   >
                     <option value=""></option>
-                    <option value="organic">Organic</option>
-                    <option value="plastic">Plastic</option>
-                    <option value="metal">Metal</option>
-                    <option value="paper">Paper</option>
+                    {WASTE_CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
@@ -148,9 +150,11 @@ const RequestPickup = () => {
                     className="w-full bg-[#F0F5F2] border-0 rounded-lg py-3 px-4 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                   >
                     <option value=""></option>
-                    <option value="restaurant">Restaurant</option>
-                    <option value="hotel">Hotel</option>
-                    <option value="office">Office</option>
+                    {WASTE_SOURCES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>

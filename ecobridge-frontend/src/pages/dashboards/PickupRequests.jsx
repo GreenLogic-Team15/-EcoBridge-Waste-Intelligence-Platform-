@@ -1,87 +1,167 @@
-import React, { useState } from "react";
-import { Search, Phone, MessageSquare, User, CheckCircle, Calendar } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Search,
+  Phone,
+  MessageSquare,
+  User,
+  CheckCircle,
+  Calendar,
+} from "lucide-react";
 import Sidebar from "../../components/layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
+import { api } from "../../services/apiClient";
+import { PICKUP_STATUSES } from "../../constants/wasteOptions";
 
 const PickupRequests = () => {
   const { userType } = useAuth();
-  const [activeFilter, setActiveFilter] = useState("all");
+  const navigate = useNavigate();
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [pickups, setPickups] = useState([]);
+  const [callTarget, setCallTarget] = useState(null);
 
-  const stats = [
-    {
-      icon: "check",
-      count: "4 Active Requests",
-      subtext: "2 Pending, 1 En route, 1 Scheduled",
-      color: "bg-[#A8D5BA]",
-    },
-    {
-      icon: "check",
-      count: "12 Completed Pickups",
-      subtext: "View History",
-      color: "bg-[#7CB87C]",
-    },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    api
+      .get("/api/pickups")
+      .then((res) => {
+        if (cancelled) return;
+        const payload = res.data;
+        const list =
+          payload?.pickups || payload?.data || (Array.isArray(payload) ? payload : []);
+        setPickups(Array.isArray(list) ? list : []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(
+          err.response?.data?.message ||
+            "Unable to load pickup requests. Please try again.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const filters = [
-    { id: "all", label: "All", count: 18, color: "bg-gray-400" },
-    { id: "pending", label: "Pending", color: "bg-red-500" },
-    { id: "scheduled", label: "Scheduled", color: "bg-yellow-500" },
-    { id: "enroute", label: "Enroute", color: "bg-teal-500" },
-    { id: "completed", label: "Completed", color: "bg-green-600" },
-    { id: "cancelled", label: "Cancelled", color: "bg-gray-400" },
-  ];
+  const normalized = useMemo(() => {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+    const text = search.trim().toLowerCase();
+    const all = pickups.map((p) => {
+      const id = p._id || p.id;
+      const status = p.status || p.pickupStatus || "None";
+      const wasteCategory = p.wasteCategory || p.wasteLog?.wasteCategory || "-";
+      const title =
+        p.title ||
+        p.wasteLog?.description ||
+        p.wasteSummary?.description ||
+        `${wasteCategory}`;
+      const pickupDate = p.pickupDate || p.availableDate || p.createdAt;
+      const location = p.pickupAddress || p.wasteLog?.pickupAddress || "-";
+      const updated = p.updatedAt ? `Updated ${new Date(p.updatedAt).toLocaleString()}` : "";
+      const partner = p.partner || p.assignedPartner || p.collector;
+      const driver =
+        partner?.name || partner?.fullName
+          ? `${partner?.name || partner?.fullName}`
+          : "";
+      const receiverId = partner?._id || partner?.id || p.partnerId || null;
+      const imagePath = p.imagePath || p.wasteLog?.imagePath;
+      const image = imagePath
+        ? imagePath.startsWith("http")
+          ? imagePath
+          : `${baseUrl}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`
+        : "https://images.unsplash.com/photo-1596451190630-186aff535bf2?auto=format&fit=crop&q=80&w=120&h=120";
 
-  const requests = [
-    {
-      id: 1,
-      status: "Enroute",
-      statusColor: "bg-[#7CB87C]",
-      title: "Orange Peels",
-      date: "February 16, 2:00 pm",
-      location: "EcoFarms #0022",
-      updated: "Updated 15 minutes ago",
-      driver: "David from EcoFarms en route",
-      progress: 60,
-      image:
-        "https://images.unsplash.com/photo-1596451190630-186aff535bf2?auto=format&fit=crop&q=80&w=120&h=120",
-    },
-    {
-      id: 2,
-      status: "Scheduled",
-      statusColor: "bg-red-500",
-      title: "Left-over Soaps",
-      date: "February 20, 2:00 pm",
-      location: "Babajide & Co. #0022",
-      updated: "Updated 2 days ago",
-      progress: 30,
-      image:
-        "https://images.unsplash.com/photo-1600857062241-98e5dba7f214?auto=format&fit=crop&q=80&w=120&h=120",
-    },
-    {
-      id: 3,
-      status: "Completed",
-      statusColor: "bg-[#7CB87C]",
-      title: "Plastic Bottles",
-      date: "February 8, 2:00 pm",
-      location: "Berg Jeans #0022",
-      updated: "Updated 8 days ago",
-      progress: 100,
-      image:
-        "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=120&h=120",
-    },
-    {
-      id: 4,
-      status: "Canceled",
-      statusColor: "bg-gray-400",
-      title: "Aluminium cans",
-      date: "February 16, 8:00 am",
-      location: "AJ Steel Collectors #0026",
-      updated: "Updated 7 hours ago",
-      progress: 0,
-      image:
-        "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=120&h=120",
-    },
-  ];
+      const progress =
+        status === "Completed"
+          ? 100
+          : status === "Accepted"
+            ? 60
+            : status === "Requested"
+              ? 30
+              : status === "Cancelled"
+                ? 0
+                : 0;
+
+      const statusColor =
+        status === "Completed"
+          ? "bg-[#7CB87C]"
+          : status === "Accepted"
+            ? "bg-teal-500"
+            : status === "Requested"
+              ? "bg-yellow-500"
+              : status === "Cancelled"
+                ? "bg-gray-400"
+                : "bg-gray-400";
+
+      return {
+        id,
+        status,
+        statusColor,
+        title,
+        pickupDate,
+        location,
+        updated,
+        driver,
+        receiverId,
+        progress,
+        image,
+      };
+    });
+
+    const filteredByStatus =
+      activeFilter === "All"
+        ? all
+        : all.filter((p) => String(p.status) === String(activeFilter));
+
+    if (!text) return filteredByStatus;
+    return filteredByStatus.filter((p) =>
+      (p.title || "").toLowerCase().includes(text),
+    );
+  }, [pickups, activeFilter, search]);
+
+  const statusCounts = useMemo(() => {
+    const counts = { Requested: 0, Accepted: 0, Completed: 0, Cancelled: 0, None: 0 };
+    pickups.forEach((p) => {
+      const s = p.status || p.pickupStatus || "None";
+      if (counts[s] === undefined) counts[s] = 0;
+      counts[s] += 1;
+    });
+    return counts;
+  }, [pickups]);
+
+  const stats = useMemo(() => {
+    const active = (statusCounts.Requested || 0) + (statusCounts.Accepted || 0);
+    const activeSub = `Requested: ${statusCounts.Requested || 0}, Accepted: ${
+      statusCounts.Accepted || 0
+    }`;
+    return [
+      {
+        icon: "check",
+        count: `${active} Active Requests`,
+        subtext: activeSub,
+        color: "bg-[#A8D5BA]",
+      },
+      {
+        icon: "check",
+        count: `${statusCounts.Completed || 0} Completed Pickups`,
+        subtext: "View History",
+        color: "bg-[#7CB87C]",
+      },
+    ];
+  }, [statusCounts]);
+
+  const filters = useMemo(
+    () => [{ id: "All", label: "All", color: "bg-gray-400" }, ...PICKUP_STATUSES],
+    [],
+  );
 
   const handleClose = () => {
     // Close button action
@@ -125,7 +205,15 @@ const PickupRequests = () => {
                 <p className="text-sm font-semibold text-gray-900">
                   {stat.count}
                 </p>
-                <p className="text-xs text-gray-500">{stat.subtext}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (stat.subtext === "View History") navigate("/history");
+                  }}
+                  className={`text-xs ${stat.subtext === "View History" ? "text-[#2E5C47] hover:underline" : "text-gray-500"}`}
+                >
+                  {stat.subtext}
+                </button>
               </div>
             </div>
           ))}
@@ -136,28 +224,27 @@ const PickupRequests = () => {
           <div className="flex items-center gap-2">
             {filters.map((filter) => (
               <button
-                key={filter.id}
-                onClick={() => setActiveFilter(filter.id)}
+                key={filter.id || filter.value}
+                onClick={() => setActiveFilter(filter.id || filter.value)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  activeFilter === filter.id
+                  activeFilter === (filter.id || filter.value)
                     ? "bg-gray-700 text-white"
                     : "bg-white text-gray-600 border border-gray-200"
                 }`}
               >
-                {filter.label}
-                {filter.count && (
-                  <span className="bg-gray-400 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center">
-                    {filter.count}
-                  </span>
-                )}
-                {!filter.count && (
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${filter.color}`}
-                  ></span>
-                )}
+                {filter.label || filter.value}
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${filter.color || "bg-gray-400"}`}
+                ></span>
               </button>
             ))}
-            <button className="text-xs text-[#2E5C47] font-medium ml-2">
+            <button
+              onClick={() => {
+                setActiveFilter("All");
+                setSearch("");
+              }}
+              className="text-xs text-[#2E5C47] font-medium ml-2"
+            >
               Clear filter
             </button>
           </div>
@@ -166,6 +253,8 @@ const PickupRequests = () => {
             <input
               type="text"
               placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               className="w-40 pl-3 pr-8 py-1.5 bg-white border border-gray-200 rounded text-xs focus:outline-none"
             />
             <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -174,7 +263,20 @@ const PickupRequests = () => {
 
         {/* Request Cards Grid */}
         <div className="grid grid-cols-2 gap-4 mb-6">
-          {requests.map((request) => (
+          {error && (
+            <div className="col-span-2 text-sm text-red-600" role="alert">
+              {error}
+            </div>
+          )}
+          {loading && (
+            <div className="col-span-2 text-sm text-gray-600">Loading…</div>
+          )}
+          {!loading && !error && normalized.length === 0 && (
+            <div className="col-span-2 text-sm text-gray-600">
+              No requests match your filters.
+            </div>
+          )}
+          {normalized.map((request) => (
             <div
               key={request.id}
               className="bg-white rounded-lg p-4 border border-gray-100"
@@ -199,7 +301,11 @@ const PickupRequests = () => {
               </div>
 
               {/* Details */}
-              <p className="text-sm text-gray-900 mb-1">{request.date}</p>
+              <p className="text-sm text-gray-900 mb-1">
+                {request.pickupDate
+                  ? new Date(request.pickupDate).toLocaleString()
+                  : "-"}
+              </p>
               <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
                 <User className="w-3 h-3" />
                 <span>{request.location}</span>
@@ -222,10 +328,26 @@ const PickupRequests = () => {
                   {request.driver || "View details"}
                 </p>
                 <div className="flex gap-2">
-                  <button className="p-1.5 text-[#2E5C47] hover:bg-gray-100 rounded">
+                  <button
+                    onClick={() => setCallTarget(request)}
+                    className="p-1.5 text-[#2E5C47] hover:bg-gray-100 rounded"
+                    aria-label="Call"
+                  >
                     <Phone className="w-4 h-4" />
                   </button>
-                  <button className="p-1.5 text-[#2E5C47] hover:bg-gray-100 rounded">
+                  <button
+                    onClick={() =>
+                      navigate("/messages", {
+                        state: {
+                          receiverId: request.receiverId,
+                          title: request.title,
+                        },
+                      })
+                    }
+                    className="p-1.5 text-[#2E5C47] hover:bg-gray-100 rounded disabled:opacity-40"
+                    aria-label="Chat"
+                    disabled={!request.receiverId}
+                  >
                     <MessageSquare className="w-4 h-4" />
                   </button>
                 </div>
@@ -244,6 +366,33 @@ const PickupRequests = () => {
           </button>
         </div>
       </div>
+
+      {callTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-lg w-full max-w-sm p-5">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">
+              Calling
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              {callTarget.driver || callTarget.title}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setCallTarget(null)}
+                className="px-4 py-2 text-sm rounded border border-gray-200 hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => setCallTarget(null)}
+                className="px-4 py-2 text-sm rounded bg-[#4A7C59] text-white hover:bg-[#3d6649]"
+              >
+                End call
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

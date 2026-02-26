@@ -1,112 +1,136 @@
-import React from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import React, { Suspense, lazy } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 
-// Auth Pages
-import Onboarding from "./pages/auth/Onboarding";
-import Login from "./pages/auth/Login";
-import SignupAdmin from "./pages/auth/SignupAdmin";
-import SignupPartner from "./pages/auth/SignupPartner";
-import SignupBusiness from "./pages/auth/SignupBusiness";
+const Onboarding = lazy(() => import("./pages/auth/Onboarding"));
+const Login = lazy(() => import("./pages/auth/Login"));
+const SignupAdmin = lazy(() => import("./pages/auth/SignupAdmin"));
+const SignupPartner = lazy(() => import("./pages/auth/SignupPartner"));
+const SignupBusiness = lazy(() => import("./pages/auth/SignupBusiness"));
 
-// Dashboard Pages
-import PartnerHomepage from "./pages/dashboards/PartnerHomepage";
-import AdminDashboard from "./pages/dashboards/AdminDashboard";
-import Notifications from "./pages/dashboards/Notifications";
-import WasteLogging from "./pages/dashboards/WasteLogging";
-import ConfirmationPage from "./pages/dashboards/ConfirmationPage";
-import PickupRequests from "./pages/dashboards/PickupRequests";
-import RequestPickup from "./pages/dashboards/RequestPickup";
-import History from "./pages/History";
-import Settings from "./pages/Setting";
+const PartnerHomepage = lazy(() => import("./pages/dashboards/PartnerHomepage"));
+const AdminDashboard = lazy(() => import("./pages/dashboards/AdminDashboard"));
+const Notifications = lazy(() => import("./pages/dashboards/Notifications"));
+const WasteLogging = lazy(() => import("./pages/dashboards/WasteLogging"));
+const ConfirmationPage = lazy(
+  () => import("./pages/dashboards/ConfirmationPage"),
+);
+const PickupRequests = lazy(() => import("./pages/dashboards/PickupRequests"));
+const RequestPickup = lazy(() => import("./pages/dashboards/RequestPickup"));
+const History = lazy(() => import("./pages/History"));
+const Settings = lazy(() => import("./pages/Setting"));
+const Messages = lazy(() => import("./pages/messages/Messages"));
+
+function AppFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="text-sm text-gray-600">Loading…</div>
+    </div>
+  );
+}
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/" />;
+}
 
 function AppContent() {
-  const navigate = useNavigate();
-  const { isAuthenticated, login } = useAuth();
-
-  const handleAuthSuccess = (type) => {
-    login(type);
-    switch (type) {
-      case "partner":
-        navigate("/partner-homepage");
-        break;
-      case "admin":
-        navigate("/admin-dashboard");
-        break;
-      case "business":
-        navigate("/pickup-requests");
-        break;
-      default:
-        navigate("/");
-    }
-  };
-
   return (
-    <>
+    <Suspense fallback={<AppFallback />}>
       <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Onboarding />} />
-      <Route
-        path="/login"
-        element={<Login onLogin={() => handleAuthSuccess("partner")} />}
-      />
-      <Route
-        path="/signup-admin"
-        element={<SignupAdmin onLogin={() => handleAuthSuccess("admin")} />}
-      />
-      <Route
-        path="/signup-partner"
-        element={<SignupPartner onLogin={() => handleAuthSuccess("partner")} />}
-      />
-      <Route
-        path="/signup-business"
-        element={
-          <SignupBusiness onLogin={() => handleAuthSuccess("business")} />
-        }
-      />
+        {/* Public Routes */}
+        <Route path="/" element={<Onboarding />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup-admin" element={<SignupAdmin />} />
+        <Route path="/signup-partner" element={<SignupPartner />} />
+        <Route path="/signup-business" element={<SignupBusiness />} />
 
-      {/* Protected Routes */}
-      <Route
-        path="/partner-homepage"
-        element={isAuthenticated ? <PartnerHomepage /> : <Navigate to="/" />}
-      />
-      <Route
-        path="/admin-dashboard"
-        element={isAuthenticated ? <AdminDashboard /> : <Navigate to="/" />}
-      />
-      <Route
-        path="/notifications"
-        element={isAuthenticated ? <Notifications /> : <Navigate to="/" />}
-      />
-      <Route
-        path="/waste-logging"
-        element={isAuthenticated ? <WasteLogging /> : <Navigate to="/" />}
-      />
-      <Route
-        path="/confirmation"
-        element={isAuthenticated ? <ConfirmationPage /> : <Navigate to="/" />}
-      />
-      <Route
-        path="/pickup-requests"
-        element={isAuthenticated ? <PickupRequests /> : <Navigate to="/" />}
-      />
-      <Route
-        path="/request-pickup"
-        element={isAuthenticated ? <RequestPickup /> : <Navigate to="/" />}
-      />
-      <Route
-        path="/history"
-        element={isAuthenticated ? <History /> : <Navigate to="/" />}
-      />
-      <Route
-        path="/settings"
-        element={isAuthenticated ? <Settings /> : <Navigate to="/" />}
-      />
+        {/* Protected Routes */}
+        <Route
+          path="/partner-homepage"
+          element={
+            <ProtectedRoute>
+              <PartnerHomepage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/waste-logging"
+          element={
+            <ProtectedRoute>
+              <WasteLogging />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/confirmation"
+          element={
+            <ProtectedRoute>
+              <ConfirmationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pickup-requests"
+          element={
+            <ProtectedRoute>
+              <PickupRequests />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/request-pickup"
+          element={
+            <ProtectedRoute>
+              <RequestPickup />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute>
+              <History />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/messages/*"
+          element={
+            <ProtectedRoute>
+              <Messages />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Catch all */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
-    </>
+        {/* Catch all */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Suspense>
   );
 }
 

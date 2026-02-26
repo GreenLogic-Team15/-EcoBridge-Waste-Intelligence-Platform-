@@ -1,10 +1,77 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Button from "../../components/ui/Button";
-import InputField from "../../components/ui/InputField";
+import { api } from "../../services/apiClient";
+import { useAuth } from "../../hooks/useAuth";
 
-const SignupAdmin = ({ onLogin }) => {
+const SignupAdmin = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    adminAccessCode: "",
+  });
+
+  const handleChange = (key) => (e) => {
+    setForm((prev) => ({ ...prev, [key]: e.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const response = await api.post("/api/auth/register/admin", {
+        fullName: form.fullName,
+        email: form.email,
+        password: form.password,
+        confirmPassword: form.confirmPassword,
+        adminAccessCode: form.adminAccessCode,
+      });
+      const { token } = response.data || {};
+      if (token) localStorage.setItem("token", token);
+      login("admin", token);
+      navigate("/admin-dashboard");
+    } catch (err) {
+      console.log("SignupAdmin error", err.response?.data || err.message);
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7464/ingest/2a841099-073f-46d7-a902-0212580c75c7",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "1a8dc5",
+          },
+          body: JSON.stringify({
+            sessionId: "1a8dc5",
+            runId: "signup-debug",
+            hypothesisId: "H1-H5",
+            location: "src/pages/auth/SignupAdmin.jsx:handleSubmit catch",
+            message: "SignupAdmin failed",
+            data: {
+              url: err.config?.url,
+              code: err.code,
+              message: err.message,
+              status: err.response?.status,
+            },
+            timestamp: Date.now(),
+          }),
+        },
+      ).catch(() => {});
+      // #endregion agent log
+      setError(
+        err.response?.data?.message ||
+          "Unable to create account. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -44,16 +111,18 @@ const SignupAdmin = ({ onLogin }) => {
             Create Account
           </h2>
 
-          {/* Form Fields */}
-          <div className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm text-gray-600 mb-1.5">
                 Full name
               </label>
               <input
                 type="text"
+                value={form.fullName}
+                onChange={handleChange("fullName")}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
+                required
               />
             </div>
 
@@ -63,8 +132,12 @@ const SignupAdmin = ({ onLogin }) => {
               </label>
               <input
                 type="email"
+                value={form.email}
+                onChange={handleChange("email")}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
+                autoComplete="email"
+                required
               />
             </div>
 
@@ -74,8 +147,12 @@ const SignupAdmin = ({ onLogin }) => {
               </label>
               <input
                 type="password"
+                value={form.password}
+                onChange={handleChange("password")}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
+                autoComplete="new-password"
+                required
               />
             </div>
 
@@ -85,8 +162,12 @@ const SignupAdmin = ({ onLogin }) => {
               </label>
               <input
                 type="password"
+                value={form.confirmPassword}
+                onChange={handleChange("confirmPassword")}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
+                autoComplete="new-password"
+                required
               />
             </div>
 
@@ -96,17 +177,27 @@ const SignupAdmin = ({ onLogin }) => {
               </label>
               <input
                 type="password"
+                value={form.adminAccessCode}
+                onChange={handleChange("adminAccessCode")}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
+                required
               />
             </div>
 
+            {error && (
+              <p className="text-sm text-red-600 mt-2" role="alert">
+                {error}
+              </p>
+            )}
+
             {/* Create Account Button */}
             <button
-              onClick={onLogin}
+              type="submit"
+              disabled={loading}
               className="w-full bg-[#4A7C59] hover:bg-[#3d6649] text-white font-medium py-3 rounded-md transition-colors mt-2"
             >
-              Create Account
+              {loading ? "Creating…" : "Create Account"}
             </button>
 
             {/* Divider */}
@@ -162,7 +253,7 @@ const SignupAdmin = ({ onLogin }) => {
                 Sign in
               </button>
             </p>
-          </div>
+          </form>
         </div>
       </div>
     </div>

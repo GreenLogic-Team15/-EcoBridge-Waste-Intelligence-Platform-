@@ -1,26 +1,92 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
+import { api } from "../../services/apiClient";
+import { useAuth } from "../../hooks/useAuth";
+import { WASTE_SOURCES } from "../../constants/wasteOptions";
 
-const SignupBusiness = ({ onLogin }) => {
+const SignupBusiness = () => {
   const navigate = useNavigate();
-  const [businessType, setBusinessType] = useState("");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { login } = useAuth();
 
-  const businessTypes = [
-    "Manufacturing",
-    "Restaurant",
-    "Hotel",
-    "Retail",
-    "Office",
-    "Healthcare",
-    "Education",
-    "Other",
-  ];
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    businessName: "",
+    location: "",
+    businessType: "",
+  });
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const businessTypes = useMemo(() => WASTE_SOURCES, []);
 
   const selectBusinessType = (type) => {
-    setBusinessType(type);
+    setForm((prev) => ({ ...prev, businessType: type }));
     setIsDropdownOpen(false);
+  };
+
+  const handleChange = (key) => (e) => {
+    setForm((prev) => ({ ...prev, [key]: e.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const response = await api.post("/api/auth/register/businesses", {
+        fullName: form.fullName,
+        email: form.email,
+        password: form.password,
+        confirmPassword: form.confirmPassword,
+        businessName: form.businessName,
+        location: form.location,
+        businessType: form.businessType,
+      });
+
+      const { token } = response.data || {};
+      if (token) localStorage.setItem("token", token);
+      login("business", token);
+      navigate("/pickup-requests");
+    } catch (err) {
+      console.log("SignupBusiness error", err.response?.data || err.message);
+      // #region agent log
+      fetch(
+        "http://127.0.0.1:7464/ingest/2a841099-073f-46d7-a902-0212580c75c7",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Debug-Session-Id": "1a8dc5",
+          },
+          body: JSON.stringify({
+            sessionId: "1a8dc5",
+            runId: "signup-debug",
+            hypothesisId: "H1-H5",
+            location: "src/pages/auth/SignupBusiness.jsx:handleSubmit catch",
+            message: "SignupBusiness failed",
+            data: {
+              url: err.config?.url,
+              code: err.code,
+              message: err.message,
+              status: err.response?.status,
+            },
+            timestamp: Date.now(),
+          }),
+        },
+      ).catch(() => {});
+      // #endregion agent log
+      setError(
+        err.response?.data?.message ||
+          "Unable to create account. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -64,16 +130,18 @@ const SignupBusiness = ({ onLogin }) => {
             Create Account
           </h2>
 
-          {/* Form Fields */}
-          <div className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm text-gray-600 mb-1.5">
                 Full name
               </label>
               <input
                 type="text"
+                value={form.fullName}
+                onChange={handleChange("fullName")}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
+                required
               />
             </div>
 
@@ -83,8 +151,12 @@ const SignupBusiness = ({ onLogin }) => {
               </label>
               <input
                 type="email"
+                value={form.email}
+                onChange={handleChange("email")}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
+                autoComplete="email"
+                required
               />
             </div>
 
@@ -94,8 +166,12 @@ const SignupBusiness = ({ onLogin }) => {
               </label>
               <input
                 type="password"
+                value={form.password}
+                onChange={handleChange("password")}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
+                autoComplete="new-password"
+                required
               />
             </div>
 
@@ -105,8 +181,12 @@ const SignupBusiness = ({ onLogin }) => {
               </label>
               <input
                 type="password"
+                value={form.confirmPassword}
+                onChange={handleChange("confirmPassword")}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
+                autoComplete="new-password"
+                required
               />
             </div>
 
@@ -116,8 +196,11 @@ const SignupBusiness = ({ onLogin }) => {
               </label>
               <input
                 type="text"
+                value={form.businessName}
+                onChange={handleChange("businessName")}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
+                required
               />
             </div>
 
@@ -127,8 +210,11 @@ const SignupBusiness = ({ onLogin }) => {
               </label>
               <input
                 type="text"
+                value={form.location}
+                onChange={handleChange("location")}
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 placeholder=""
+                required
               />
             </div>
 
@@ -143,9 +229,9 @@ const SignupBusiness = ({ onLogin }) => {
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
               >
                 <span
-                  className={businessType ? "text-gray-900" : "text-gray-500"}
+                  className={form.businessType ? "text-gray-900" : "text-gray-500"}
                 >
-                  {businessType || "Select Category"}
+                  {form.businessType || "Select Business Type"}
                 </span>
                 <ChevronDown
                   className={`w-4 h-4 text-gray-500 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
@@ -169,12 +255,19 @@ const SignupBusiness = ({ onLogin }) => {
               )}
             </div>
 
+            {error && (
+              <p className="text-sm text-red-600 mt-2" role="alert">
+                {error}
+              </p>
+            )}
+
             {/* Create Account Button */}
             <button
-              onClick={onLogin}
+              type="submit"
+              disabled={loading}
               className="w-full bg-[#4A7C59] hover:bg-[#3d6649] text-white font-medium py-3 rounded-md transition-colors mt-2"
             >
-              Create Account
+              {loading ? "Creating…" : "Create Account"}
             </button>
 
             {/* Divider */}
@@ -230,7 +323,7 @@ const SignupBusiness = ({ onLogin }) => {
                 Sign in
               </button>
             </p>
-          </div>
+          </form>
         </div>
       </div>
     </div>
