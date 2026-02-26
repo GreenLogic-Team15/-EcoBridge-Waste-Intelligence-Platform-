@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Phone, MessageSquare, MapPin, User } from "lucide-react";
+import { Search, Phone, MessageSquare, MapPin, User, LayoutDashboard } from "lucide-react";
 import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
 import Sidebar from "../../components/layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";

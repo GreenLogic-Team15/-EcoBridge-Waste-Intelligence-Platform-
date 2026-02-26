@@ -1,6 +1,5 @@
 import React from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import Navbar from "./components/layout/Navbar";
 import { useAuth } from "./hooks/useAuth";
 
 // Auth Pages
@@ -20,11 +19,6 @@ import PickupRequests from "./pages/dashboards/PickupRequests";
 import RequestPickup from "./pages/dashboards/RequestPickup";
 import History from "./pages/History";
 import Settings from "./pages/Setting";
-
-// Wrapper component to pass userType
-const PageWrapper = ({ children, userType }) => {
-  return React.cloneElement(children, { userType });
-};
 
 function AppContent() {
   const navigate = useNavigate();
@@ -49,7 +43,6 @@ function AppContent() {
 
   return (
     <>
-      <Navbar />
       <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Onboarding />} />
