@@ -25,6 +25,13 @@ const RequestPickup = () => {
 
   const handleOk = () => {
     setShowSuccessOverlay(false);
+    //  const dashboardPath =
+    //    userType === "partner"
+    //      ? "/partner-homepage"
+    //      : userType === "business"
+    //        ? "/pickup-requests"
+    //        : "/admin-dashboard";
+    //  navigate(dashboardPath);
     navigate("/pickup-requests");
   };
 
