@@ -55,58 +55,7 @@ const SignupBusiness = () => {
     } catch (err) {
       console.log("SignupBusiness error", err.response?.data || err.message);
       console.log("SignupBusiness backend error data", err.response?.data);
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7464/ingest/2a841099-073f-46d7-a902-0212580c75c7",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "1a8dc5",
-          },
-          body: JSON.stringify({
-            sessionId: "1a8dc5",
-            runId: "signup-debug",
-            hypothesisId: "H1-H5",
-            location: "src/pages/auth/SignupBusiness.jsx:handleSubmit catch",
-            message: "SignupBusiness failed",
-            data: {
-              url: err.config?.url,
-              code: err.code,
-              message: err.message,
-              status: err.response?.status,
-            },
-            timestamp: Date.now(),
-          }),
-        },
-      ).catch(() => {});
-      // #endregion agent log
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7507/ingest/56b395a6-7fc8-4b95-993b-a061c9e4db11",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "8f2768",
-          },
-          body: JSON.stringify({
-            sessionId: "8f2768",
-            runId: "signup-run",
-            hypothesisId: "H1-H5",
-            location: "src/pages/auth/SignupBusiness.jsx:handleSubmit catch",
-            message: "SignupBusiness failed (current session)",
-            data: {
-              url: err.config?.url,
-              code: err.code,
-              message: err.message,
-              status: err.response?.status,
-            },
-            timestamp: Date.now(),
-          }),
-        },
-      ).catch(() => {});
-      // #endregion agent log
+
       setError(
         err.response?.data?.message ||
           "Unable to create account. Please try again.",
@@ -122,7 +71,7 @@ const SignupBusiness = () => {
       <div className="hidden lg:flex lg:w-1/2 relative">
         {/* Background Image */}
         <img
-          src="/images/auth-bg.jpg"
+          src={`${import.meta.env.BASE_URL}/images/Ecobridge.jpg`}
           alt="Background"
           className="absolute inset-0 w-full h-full object-cover"
           onError={(e) => {
@@ -256,7 +205,9 @@ const SignupBusiness = () => {
                 className="w-full bg-[#F0F5F2] border-0 rounded-md py-3 px-4 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
               >
                 <span
-                  className={form.businessType ? "text-gray-900" : "text-gray-500"}
+                  className={
+                    form.businessType ? "text-gray-900" : "text-gray-500"
+                  }
                 >
                   {form.businessType || "Select Business Type"}
                 </span>

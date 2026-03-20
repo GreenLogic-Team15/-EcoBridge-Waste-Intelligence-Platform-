@@ -29,33 +29,6 @@ const Notifications = () => {
       .catch((err) => {
         if (cancelled) return;
 
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7507/ingest/56b395a6-7fc8-4b95-993b-a061c9e4db11",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "8f2768",
-            },
-            body: JSON.stringify({
-              sessionId: "8f2768",
-              runId: "notifications",
-              hypothesisId: "notifications",
-              location:
-                "src/pages/dashboards/Notifications.jsx:useEffect fetch",
-              message: "Notifications fetch failed",
-              data: {
-                message: err.message,
-                status: err.response?.status,
-                url: err.config?.url,
-              },
-              timestamp: Date.now(),
-            }),
-          },
-        ).catch(() => {});
-        // #endregion agent log
-
         setError(
           err.response?.data?.message ||
             "Unable to load notifications. Please try again.",

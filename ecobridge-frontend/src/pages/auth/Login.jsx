@@ -59,7 +59,7 @@ const Login = () => {
       <div className="hidden lg:flex lg:w-1/2 relative">
         {/* Background Image */}
         <img
-          src="/images/auth-bg.jpg"
+          src={`${import.meta.env.BASE_URL}/images/Ecobridge.jpg`}
           alt="Background"
           className="absolute inset-0 w-full h-full object-cover"
           onError={(e) => {

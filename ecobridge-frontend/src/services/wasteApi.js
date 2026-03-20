@@ -2,7 +2,7 @@ import axios from "axios";
 
 // create reusable axios instance
 const api = axios.create({
-  baseURL: "https://jsonplaceholder.typicode.com",
+  baseURL: "https://ecobridge-backend-x2uh.onrender.com",
 });
 
 export const submitWasteLog = async (wasteData) => {

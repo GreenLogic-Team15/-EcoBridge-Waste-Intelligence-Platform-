@@ -102,8 +102,9 @@ const PartnerHomepage = () => {
 
   const normalizedListings = useMemo(() => {
     const text = search.trim().toLowerCase();
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-
+    const baseUrl =
+      import.meta.env.VITE_API_BASE_URL ||
+      "https://ecobridge-backend-x2uh.onrender.com";
     const all = wastes.map((w) => {
       const id = w._id || w.id;
       const wasteCategory = w.wasteCategory || w.category;
@@ -404,7 +405,9 @@ const PartnerHomepage = () => {
                       className="p-1 text-[#2E5C47] hover:bg-gray-100 rounded disabled:opacity-40"
                       aria-label="Chat"
                       disabled={!listing.receiverId}
-                      title={!listing.receiverId ? "Missing recipient" : "Open chat"}
+                      title={
+                        !listing.receiverId ? "Missing recipient" : "Open chat"
+                      }
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
                     </button>
@@ -508,7 +511,10 @@ const PartnerHomepage = () => {
                   type="date"
                   value={requestForm.pickupDate}
                   onChange={(e) =>
-                    setRequestForm((p) => ({ ...p, pickupDate: e.target.value }))
+                    setRequestForm((p) => ({
+                      ...p,
+                      pickupDate: e.target.value,
+                    }))
                   }
                   className="w-full bg-[#F0F5F2] border-0 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                 />

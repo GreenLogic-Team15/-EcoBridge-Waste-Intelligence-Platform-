@@ -42,9 +42,7 @@ const History = () => {
             date: d.toISOString().slice(0, 10),
             time: d.toTimeString().slice(0, 5),
             activity: "Waste Logged",
-            details: `${log.wasteCategory || "Waste"} - ${
-              log.quantity ?? "-"
-            }`,
+            details: `${log.wasteCategory || "Waste"} - ${log.quantity ?? "-"}`,
             status: log.status || "Draft",
             location: log.pickupAddress || log.location || "-",
             type: "waste",
@@ -78,31 +76,6 @@ const History = () => {
       })
       .catch((err) => {
         if (cancelled) return;
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7507/ingest/56b395a6-7fc8-4b95-993b-a061c9e4db11",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "8f2768",
-            },
-            body: JSON.stringify({
-              sessionId: "8f2768",
-              runId: "history-run",
-              hypothesisId: "H-history",
-              location: "src/pages/History.jsx:useEffect fetch",
-              message: "History fetch failed",
-              data: {
-                message: err.message,
-                status: err.response?.status,
-                url: err.config?.url,
-              },
-              timestamp: Date.now(),
-            }),
-          },
-        ).catch(() => {});
-        // #endregion agent log
 
         setError(
           err.response?.data?.message ||

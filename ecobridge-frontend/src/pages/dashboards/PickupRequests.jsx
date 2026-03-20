@@ -34,7 +34,9 @@ const PickupRequests = () => {
         if (cancelled) return;
         const payload = res.data;
         const list =
-          payload?.pickups || payload?.data || (Array.isArray(payload) ? payload : []);
+          payload?.pickups ||
+          payload?.data ||
+          (Array.isArray(payload) ? payload : []);
         setPickups(Array.isArray(list) ? list : []);
       })
       .catch((err) => {
@@ -53,7 +55,9 @@ const PickupRequests = () => {
   }, []);
 
   const normalized = useMemo(() => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+    const baseUrl =
+      import.meta.env.VITE_API_BASE_URL ||
+      "https://ecobridge-backend-x2uh.onrender.com";
     const text = search.trim().toLowerCase();
     const all = pickups.map((p) => {
       const id = p._id || p.id;
@@ -66,7 +70,9 @@ const PickupRequests = () => {
         `${wasteCategory}`;
       const pickupDate = p.pickupDate || p.availableDate || p.createdAt;
       const location = p.pickupAddress || p.wasteLog?.pickupAddress || "-";
-      const updated = p.updatedAt ? `Updated ${new Date(p.updatedAt).toLocaleString()}` : "";
+      const updated = p.updatedAt
+        ? `Updated ${new Date(p.updatedAt).toLocaleString()}`
+        : "";
       const partner = p.partner || p.assignedPartner || p.collector;
       const driver =
         partner?.name || partner?.fullName
@@ -129,7 +135,13 @@ const PickupRequests = () => {
   }, [pickups, activeFilter, search]);
 
   const statusCounts = useMemo(() => {
-    const counts = { Requested: 0, Accepted: 0, Completed: 0, Cancelled: 0, None: 0 };
+    const counts = {
+      Requested: 0,
+      Accepted: 0,
+      Completed: 0,
+      Cancelled: 0,
+      None: 0,
+    };
     pickups.forEach((p) => {
       const s = p.status || p.pickupStatus || "None";
       if (counts[s] === undefined) counts[s] = 0;
@@ -160,7 +172,10 @@ const PickupRequests = () => {
   }, [statusCounts]);
 
   const filters = useMemo(
-    () => [{ id: "All", label: "All", color: "bg-gray-400" }, ...PICKUP_STATUSES],
+    () => [
+      { id: "All", label: "All", color: "bg-gray-400" },
+      ...PICKUP_STATUSES,
+    ],
     [],
   );
 
@@ -178,34 +193,6 @@ const PickupRequests = () => {
         }),
       );
     } catch (err) {
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7507/ingest/56b395a6-7fc8-4b95-993b-a061c9e4db11",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Debug-Session-Id": "8f2768",
-          },
-          body: JSON.stringify({
-            sessionId: "8f2768",
-            runId: "pickup-status",
-            hypothesisId: "pickup-status",
-            location:
-              "src/pages/dashboards/PickupRequests.jsx:updateStatus catch",
-            message: "Pickup status update failed",
-            data: {
-              id,
-              status,
-              message: err.message,
-              backendStatus: err.response?.status,
-            },
-            timestamp: Date.now(),
-          }),
-        },
-      ).catch(() => {});
-      // #endregion agent log
-
       setError(
         err.response?.data?.message ||
           "Unable to update pickup status. Please try again.",
@@ -381,9 +368,7 @@ const PickupRequests = () => {
                     {request.driver || "View details"}
                   </p>
                   <div className="flex items-center gap-1">
-                    <label className="text-[10px] text-gray-500">
-                      Status:
-                    </label>
+                    <label className="text-[10px] text-gray-500">Status:</label>
                     <select
                       className="text-[10px] border border-gray-200 rounded px-1 py-0.5 bg-white"
                       value={request.status}

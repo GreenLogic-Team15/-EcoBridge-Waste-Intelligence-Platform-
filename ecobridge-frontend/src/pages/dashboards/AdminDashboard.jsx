@@ -37,33 +37,6 @@ const AdminDashboard = () => {
       .catch((err) => {
         if (cancelled) return;
 
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7507/ingest/56b395a6-7fc8-4b95-993b-a061c9e4db11",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Debug-Session-Id": "8f2768",
-            },
-            body: JSON.stringify({
-              sessionId: "8f2768",
-              runId: "admin-dashboard",
-              hypothesisId: "admin-dashboard",
-              location:
-                "src/pages/dashboards/AdminDashboard.jsx:useEffect fetch",
-              message: "Admin dashboard fetch failed",
-              data: {
-                message: err.message,
-                status: err.response?.status,
-                url: err.config?.url,
-              },
-              timestamp: Date.now(),
-            }),
-          },
-        ).catch(() => {});
-        // #endregion agent log
-
         setError(
           err.response?.data?.message ||
             "Unable to load admin dashboard. Please try again.",
@@ -195,9 +168,7 @@ const AdminDashboard = () => {
             <h1 className="text-3xl font-semibold text-gray-900 mb-1">
               Welcome Sarah
             </h1>
-            <p className="text-sm text-gray-500">
-              Admin Overview
-            </p>
+            <p className="text-sm text-gray-500">Admin Overview</p>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             15 February 2026
