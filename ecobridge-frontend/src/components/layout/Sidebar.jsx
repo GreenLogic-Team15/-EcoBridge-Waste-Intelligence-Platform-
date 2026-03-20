@@ -11,23 +11,33 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/apiClient";
-import { useSidebar } from "../../contexts/SidebarContext";
 
 const Sidebar = ({ userType }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
-  const {
-    isMobile,
-    isMobileOpen,
-    setMobileOpen,
-    isCollapsed,
-    setCollapsed,
-  } = useSidebar();
+
+  // Replace useSidebar with local state
+  const [isMobileOpen, setMobileOpen] = useState(false);
+  const [isCollapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+      if (window.innerWidth >= 1024) {
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,34 +66,94 @@ const Sidebar = ({ userType }) => {
       icon: Bell,
       path: "/notifications",
     };
-    const historyItem = { id: "history", label: "History", icon: History, path: "/history" };
+    const historyItem = {
+      id: "history",
+      label: "History",
+      icon: History,
+      path: "/history",
+    };
+    const settingsItem = {
+      id: "settings",
+      label: "Settings",
+      icon: Settings,
+      path: "/settings",
+    };
 
-    switch (userType) {
+    switch (userType?.toLowerCase()) {
       case "partner":
         return [
-          { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/partner-homepage" },
-          { id: "log_waste", label: "Logging Waste", icon: LogOut, path: "/waste-logging" },
-          { id: "pickup_requests", label: "Pickup request", icon: Truck, path: "/request-pickup" },
+          {
+            id: "dashboard",
+            label: "Dashboard",
+            icon: LayoutDashboard,
+            path: "/partner-homepage",
+          },
+          {
+            id: "log_waste",
+            label: "Browse Waste",
+            icon: Trash2,
+            path: "/browse-waste",
+          },
+          {
+            id: "pickup_requests",
+            label: "My Pickups",
+            icon: Truck,
+            path: "/active-pickups",
+          },
           notificationItem,
           historyItem,
+          settingsItem,
         ];
 
       case "business":
+      case "sme":
         return [
-          { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/pickup-requests" },
-          { id: "log_waste", label: "Logging Waste", icon: LogOut, path: "/waste-logging" },
-          { id: "pickup_requests", label: "Pickup request", icon: Truck, path: "/request-pickup" },
+          {
+            id: "dashboard",
+            label: "Dashboard",
+            icon: LayoutDashboard,
+            path: "/pickup-requests",
+          },
+          {
+            id: "log_waste",
+            label: "Log Waste",
+            icon: Trash2,
+            path: "/waste-logging",
+          },
+          {
+            id: "pickup_requests",
+            label: "Request Pickup",
+            icon: Truck,
+            path: "/request-pickup",
+          },
           notificationItem,
           historyItem,
+          settingsItem,
         ];
 
       case "admin":
         return [
-          { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/admin-dashboard" },
-          { id: "log_waste", label: "Logging Waste", icon: LogOut, path: "/waste-logging" },
-          { id: "pickup_requests", label: "Pickup request", icon: Truck, path: "/request-pickup" },
+          {
+            id: "dashboard",
+            label: "Dashboard",
+            icon: LayoutDashboard,
+            path: "/admin-dashboard",
+          },
+          {
+            id: "log_waste",
+            label: "All Waste Logs",
+            icon: Trash2,
+            path: "/waste-logs",
+          },
+          {
+            id: "pickup_requests",
+            label: "All Pickups",
+            icon: Truck,
+            path: "/all-pickups",
+          },
           notificationItem,
           historyItem,
+          settingsItem,
         ];
 
       default:
@@ -128,7 +198,9 @@ const Sidebar = ({ userType }) => {
                 )}
               </span>
               {(!isCollapsed || isMobile) && (
-                <span className="text-sm font-medium truncate">{item.label}</span>
+                <span className="text-sm font-medium truncate">
+                  {item.label}
+                </span>
               )}
             </button>
           );
@@ -143,7 +215,11 @@ const Sidebar = ({ userType }) => {
             className="w-full flex items-center justify-center gap-2 py-2 text-gray-500 hover:text-[#2E5C47]"
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {isCollapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
           </button>
         )}
         <button
@@ -157,7 +233,9 @@ const Sidebar = ({ userType }) => {
           title={isCollapsed && !isMobile ? "Settings" : undefined}
         >
           <Settings className="w-4 h-4 flex-shrink-0" />
-          {(!isCollapsed || isMobile) && <span className="text-sm font-medium">Settings</span>}
+          {(!isCollapsed || isMobile) && (
+            <span className="text-sm font-medium">Settings</span>
+          )}
         </button>
         <button
           type="button"
@@ -169,19 +247,28 @@ const Sidebar = ({ userType }) => {
           title={isCollapsed && !isMobile ? "Logout" : undefined}
         >
           <LogOut className="w-4 h-4 flex-shrink-0" />
-          {(!isCollapsed || isMobile) && <span className="text-sm font-medium">Logout</span>}
+          {(!isCollapsed || isMobile) && (
+            <span className="text-sm font-medium">Logout</span>
+          )}
         </button>
       </div>
 
-      <div className={`p-4 border-t border-[#D1E7DD] ${isCollapsed && !isMobile ? "flex justify-center" : ""}`}>
+      <div
+        className={`p-4 border-t border-[#D1E7DD] ${isCollapsed && !isMobile ? "flex justify-center" : ""}`}
+      >
         <div className="flex items-center gap-3">
-          <img
-            src="https://i.pravatar.cc/150?img=32"
-            alt="User"
-            className="w-8 h-8 rounded-full flex-shrink-0"
-          />
+          <div className="w-8 h-8 bg-[#2E5C47] rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-xs font-bold">U</span>
+          </div>
           {(!isCollapsed || isMobile) && (
-            <span className="text-sm font-medium text-gray-700 truncate">Sarah Anthony</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-700 truncate">
+                {localStorage.getItem("userName") || "User"}
+              </p>
+              <p className="text-xs text-gray-500 capitalize truncate">
+                {userType || localStorage.getItem("userRole") || "Guest"}
+              </p>
+            </div>
           )}
         </div>
       </div>

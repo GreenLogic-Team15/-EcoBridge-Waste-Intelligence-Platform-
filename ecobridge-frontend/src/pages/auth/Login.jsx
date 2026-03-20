@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/apiClient";
 import { useAuth } from "../../hooks/useAuth";
+import { jwtDecode } from "jwt-decode";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -31,8 +32,36 @@ const Login = () => {
         password,
       });
 
-      const { token, role } = response.data || {};
+      const { token } = response.data || {};
+
+      // Decode token to get user info
+      let userData = {};
+      try {
+        userData = jwtDecode(token);
+        console.log("Decoded token:", userData); // Check console to see what's inside
+      } catch (e) {
+        console.error("Failed to decode token", e);
+      }
+
+      const role = userData.role || userData.user?.role;
       const userType = mapRoleToUserType(role);
+
+      // Store in localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("userRole", userType || "");
+      localStorage.setItem(
+        "userName",
+        userData.fullName ||
+          userData.user?.fullName ||
+          userData.businessName ||
+          userData.user?.businessName ||
+          email,
+      );
+      localStorage.setItem(
+        "userEmail",
+        userData.email || userData.user?.email || email,
+      );
+
       login(userType || "", token);
 
       const dashboardPath =
