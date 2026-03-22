@@ -90,15 +90,15 @@ const Sidebar = ({ userType }) => {
           },
           {
             id: "log_waste",
-            label: "Browse Waste",
+            label: "Log Waste",
             icon: Trash2,
-            path: "/browse-waste",
+            path: "/waste-logging",
           },
           {
             id: "pickup_requests",
-            label: "My Pickups",
+            label: "Request Pickup",
             icon: Truck,
-            path: "/active-pickups",
+            path: "/request-pickup",
           },
           notificationItem,
           historyItem,
@@ -143,13 +143,13 @@ const Sidebar = ({ userType }) => {
             id: "log_waste",
             label: "All Waste Logs",
             icon: Trash2,
-            path: "/waste-logs",
+            path: "/waste-logging",
           },
           {
             id: "pickup_requests",
             label: "All Pickups",
             icon: Truck,
-            path: "/all-pickups",
+            path: "/request-pickup",
           },
           notificationItem,
           historyItem,
@@ -222,21 +222,6 @@ const Sidebar = ({ userType }) => {
             )}
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => handleNav("/settings")}
-          className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left transition-colors ${
-            location.pathname === "/settings"
-              ? "bg-[#2E5C47] text-white"
-              : "text-gray-600 hover:bg-[#D1E7DD]"
-          } ${isCollapsed && !isMobile ? "justify-center px-2" : ""}`}
-          title={isCollapsed && !isMobile ? "Settings" : undefined}
-        >
-          <Settings className="w-4 h-4 flex-shrink-0" />
-          {(!isCollapsed || isMobile) && (
-            <span className="text-sm font-medium">Settings</span>
-          )}
-        </button>
         <button
           type="button"
           onClick={() => {
