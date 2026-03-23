@@ -37,6 +37,7 @@ const SignupBusiness = () => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
       const response = await api.post("/api/auth/register/businesses", {
         fullName: form.fullName,
@@ -49,17 +50,28 @@ const SignupBusiness = () => {
       });
 
       const { token } = response.data || {};
-      if (token) localStorage.setItem("token", token);
+      if (!token) throw new Error("No token received");
+
+      // Store all user data immediately
+      localStorage.setItem("token", token);
+      localStorage.setItem("userRole", "business");
+      localStorage.setItem("userName", form.fullName);
+      localStorage.setItem("userEmail", form.email);
+      localStorage.setItem("businessName", form.businessName);
+
       login("business", token);
       navigate("/pickup-requests");
     } catch (err) {
-      console.log("SignupBusiness error", err.response?.data || err.message);
-      console.log("SignupBusiness backend error data", err.response?.data);
-
-      setError(
-        err.response?.data?.message ||
-          "Unable to create account. Please try again.",
-      );
+      let errorMsg = "Unable to create account. Please try again.";
+      if (err.code === "ECONNABORTED") {
+        errorMsg = "Server is taking too long. Please try again.";
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      } else if (err.response?.data?.msg) {
+        errorMsg = err.response.data.msg;
+      }
+      setError(errorMsg);
+      console.error("Signup error:", err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
@@ -243,9 +255,35 @@ const SignupBusiness = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#4A7C59] hover:bg-[#3d6649] text-white font-medium py-3 rounded-md transition-colors mt-2"
+              className="w-full bg-[#4A7C59] hover:bg-[#3d6649] text-white font-medium py-3 rounded-md transition-colors mt-2 disabled:opacity-70 flex items-center justify-center gap-2"
             >
-              {loading ? "Creating…" : "Create Account"}
+              {loading ? (
+                <>
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <span>Creating account...</span>
+                </>
+              ) : (
+                "Create Account"
+              )}
             </button>
 
             {/* Divider */}

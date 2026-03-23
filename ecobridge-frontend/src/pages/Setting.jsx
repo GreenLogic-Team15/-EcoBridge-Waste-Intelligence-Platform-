@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   User,
   Bell,
@@ -10,10 +10,87 @@ import {
 } from "lucide-react";
 import Sidebar from "../components/layout/Sidebar";
 import { useAuth } from "../hooks/useAuth";
+import { api } from "../services/apiClient";
 
 const Settings = () => {
   const { userType } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  // Form states
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    organization: "",
+    bio: "",
+  });
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        // Try to get from localStorage first for speed
+        const cachedName = localStorage.getItem("userName");
+        const cachedEmail = localStorage.getItem("userEmail");
+        const cachedBusiness = localStorage.getItem("businessName");
+
+        if (cachedName) {
+          setFormData((prev) => ({
+            ...prev,
+            fullName: cachedName,
+            email: cachedEmail || "",
+            organization: cachedBusiness || "",
+          }));
+        }
+
+        // Then fetch fresh data from API
+        const response = await api.get("/api/auth/me");
+        const userData = response.data;
+
+        setUser(userData);
+        setFormData({
+          fullName: userData.fullName || userData.name || cachedName || "",
+          email: userData.email || cachedEmail || "",
+          phone: userData.phone || "",
+          organization: userData.businessName || cachedBusiness || "",
+          bio: userData.bio || "",
+        });
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+        // Fallback to localStorage if API fails
+        setFormData({
+          fullName: localStorage.getItem("userName") || "",
+          email: localStorage.getItem("userEmail") || "",
+          organization: localStorage.getItem("businessName") || "",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setMessage("");
+    try {
+      await api.put("/api/auth/profile", formData);
+      // Update localStorage with new values
+      localStorage.setItem("userName", formData.fullName);
+      localStorage.setItem("userEmail", formData.email);
+      localStorage.setItem("businessName", formData.organization);
+      setMessage("Profile updated successfully!");
+    } catch (err) {
+      setMessage("Failed to update profile. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
@@ -22,6 +99,17 @@ const Settings = () => {
     { id: "pickup", label: "Pickup Preferences", icon: Truck },
     { id: "billing", label: "Billing", icon: CreditCard },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-[#F5F7F6]">
+        <Sidebar userType={userType || "admin"} />
+        <div className="flex-1 ml-56 flex items-center justify-center">
+          <div className="text-gray-600">Loading profile...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-[#F5F7F6]">
@@ -63,23 +151,31 @@ const Settings = () => {
                   Profile Information
                 </h2>
 
+                {message && (
+                  <div
+                    className={`mb-4 p-3 rounded ${message.includes("success") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                  >
+                    {message}
+                  </div>
+                )}
+
                 {/* Avatar */}
                 <div className="flex items-center gap-4 mb-6">
                   <div className="relative">
-                    <img
-                      src="https://i.pravatar.cc/150?img=32"
-                      alt="Profile"
-                      className="w-20 h-20 rounded-full"
-                    />
+                    <div className="w-20 h-20 bg-[#4A7C59] rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                      {(formData.fullName || "U").charAt(0).toUpperCase()}
+                    </div>
                     <button className="absolute bottom-0 right-0 w-6 h-6 bg-[#4A7C59] rounded-full flex items-center justify-center text-white">
                       <Camera className="w-3 h-3" />
                     </button>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900">
-                      Sarah Anthony
+                      {formData.fullName || "User"}
                     </p>
-                    <p className="text-xs text-gray-500">Administrator</p>
+                    <p className="text-xs text-gray-500 capitalize">
+                      {userType || "User"}
+                    </p>
                   </div>
                 </div>
 
@@ -91,7 +187,10 @@ const Settings = () => {
                     </label>
                     <input
                       type="text"
-                      defaultValue="Sarah Anthony"
+                      value={formData.fullName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, fullName: e.target.value })
+                      }
                       className="w-full bg-[#F0F5F2] border-0 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                     />
                   </div>
@@ -101,7 +200,10 @@ const Settings = () => {
                     </label>
                     <input
                       type="email"
-                      defaultValue="sarah@ecobridge.com"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
                       className="w-full bg-[#F0F5F2] border-0 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                     />
                   </div>
@@ -111,7 +213,11 @@ const Settings = () => {
                     </label>
                     <input
                       type="tel"
-                      defaultValue="+234 801 234 5678"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      placeholder="+234..."
                       className="w-full bg-[#F0F5F2] border-0 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                     />
                   </div>
@@ -121,7 +227,13 @@ const Settings = () => {
                     </label>
                     <input
                       type="text"
-                      defaultValue="EcoBridge HQ"
+                      value={formData.organization}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          organization: e.target.value,
+                        })
+                      }
                       className="w-full bg-[#F0F5F2] border-0 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
                     />
                   </div>
@@ -133,16 +245,27 @@ const Settings = () => {
                   </label>
                   <textarea
                     rows="3"
+                    value={formData.bio}
+                    onChange={(e) =>
+                      setFormData({ ...formData, bio: e.target.value })
+                    }
                     className="w-full bg-[#F0F5F2] border-0 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20 resize-none"
                     placeholder="Tell us about yourself..."
-                  ></textarea>
+                  />
                 </div>
 
                 <div className="flex gap-3">
-                  <button className="px-6 py-2 bg-[#4A7C59] text-white text-sm rounded-lg hover:bg-[#3d6649]">
-                    Save Changes
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="px-6 py-2 bg-[#4A7C59] text-white text-sm rounded-lg hover:bg-[#3d6649] disabled:opacity-70"
+                  >
+                    {saving ? "Saving..." : "Save Changes"}
                   </button>
-                  <button className="px-6 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50">
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="px-6 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50"
+                  >
                     Cancel
                   </button>
                 </div>
