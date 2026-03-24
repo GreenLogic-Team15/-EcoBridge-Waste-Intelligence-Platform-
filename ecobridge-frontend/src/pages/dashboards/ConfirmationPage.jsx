@@ -19,9 +19,6 @@ const ConfirmationPage = () => {
 
   const { wasteData, aiAnalysis } = location.state || {};
 
-  // ✅ FIX 1: Extract the waste log's database ID.
-  // wasteData is the full saved object returned from POST /api/waste.
-  // Its _id is the key that links a pickup request back to this waste log.
   const wasteLogId = wasteData?._id || wasteData?.id || null;
 
   const sidebarItems = [
@@ -38,9 +35,6 @@ const ConfirmationPage = () => {
   };
 
   const handleRequestPickup = () => {
-    // ✅ FIX 2: Pass wasteLogId explicitly alongside wasteData.
-    // RequestPickup.jsx reads wasteLogId from state and sends it to the backend
-    // so the pickup is linked to this specific waste log.
     navigate("/request-pickup", {
       state: { wasteData, wasteLogId },
     });
@@ -68,7 +62,7 @@ const ConfirmationPage = () => {
           <div className="flex items-center gap-3">
             <img
               src="https://i.pravatar.cc/150?img=32"
-              alt="Sarah Anthony"
+              alt="user avatar"
               className="w-8 h-8 rounded-full"
             />
             <span className="text-sm font-medium text-gray-700">
