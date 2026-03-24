@@ -11,7 +11,16 @@ import {
 import Sidebar from "../../components/layout/Sidebar";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/apiClient";
-import { PICKUP_STATUSES } from "../../constants/wasteOptions";
+
+// ✅ FIX 1: Define statuses right here — no need to import from a constants file.
+// These strings must EXACTLY match what your backend sends back.
+// If your backend sends "En-route" instead of "Accepted", update here!
+const PICKUP_STATUSES = [
+  { id: "Requested", label: "Requested", color: "bg-yellow-400" },
+  { id: "Accepted", label: "Accepted", color: "bg-teal-500" },
+  { id: "Completed", label: "Completed", color: "bg-green-500" },
+  { id: "Cancelled", label: "Cancelled", color: "bg-gray-400" },
+];
 
 const PickupRequests = () => {
   const { userType } = useAuth();
@@ -59,15 +68,26 @@ const PickupRequests = () => {
       import.meta.env.VITE_API_BASE_URL ||
       "https://ecobridge-backend-x2uh.onrender.com";
     const text = search.trim().toLowerCase();
+
     const all = pickups.map((p) => {
       const id = p._id || p.id;
-      const status = p.status || p.pickupStatus || "None";
+
+      // ✅ FIX 2: Status normalization — handle different backend casings
+      // Some backends send "requested", others send "Requested"
+      const rawStatus = p.status || p.pickupStatus || "None";
+      // Capitalize first letter so "requested" → "Requested"
+      const status =
+        rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+      // But keep known exact matches
+      const knownStatuses = ["Requested", "Accepted", "Completed", "Cancelled"];
+      const finalStatus = knownStatuses.includes(status) ? status : rawStatus;
+
       const wasteCategory = p.wasteCategory || p.wasteLog?.wasteCategory || "-";
       const title =
         p.title ||
         p.wasteLog?.description ||
         p.wasteSummary?.description ||
-        `${wasteCategory}`;
+        wasteCategory;
       const pickupDate = p.pickupDate || p.availableDate || p.createdAt;
       const location = p.pickupAddress || p.wasteLog?.pickupAddress || "-";
       const updated = p.updatedAt
@@ -86,31 +106,30 @@ const PickupRequests = () => {
           : `${baseUrl}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`
         : "https://images.unsplash.com/photo-1596451190630-186aff535bf2?auto=format&fit=crop&q=80&w=120&h=120";
 
+      // ✅ FIX 3: Progress bar now reflects correct status
       const progress =
-        status === "Completed"
+        finalStatus === "Completed"
           ? 100
-          : status === "Accepted"
+          : finalStatus === "Accepted"
             ? 60
-            : status === "Requested"
+            : finalStatus === "Requested"
               ? 30
-              : status === "Cancelled"
-                ? 0
-                : 0;
+              : 0;
 
       const statusColor =
-        status === "Completed"
+        finalStatus === "Completed"
           ? "bg-[#7CB87C]"
-          : status === "Accepted"
+          : finalStatus === "Accepted"
             ? "bg-teal-500"
-            : status === "Requested"
+            : finalStatus === "Requested"
               ? "bg-yellow-500"
-              : status === "Cancelled"
+              : finalStatus === "Cancelled"
                 ? "bg-gray-400"
                 : "bg-gray-400";
 
       return {
         id,
-        status,
+        status: finalStatus,
         statusColor,
         title,
         pickupDate,
@@ -123,10 +142,11 @@ const PickupRequests = () => {
       };
     });
 
+    // ✅ FIX 4: Filter by active status tab (was already correct, but now uses normalized status)
     const filteredByStatus =
       activeFilter === "All"
         ? all
-        : all.filter((p) => String(p.status) === String(activeFilter));
+        : all.filter((p) => p.status === activeFilter);
 
     if (!text) return filteredByStatus;
     return filteredByStatus.filter((p) =>
@@ -134,18 +154,13 @@ const PickupRequests = () => {
     );
   }, [pickups, activeFilter, search]);
 
+  // ✅ FIX 5: Status counts use normalized statuses so badge numbers are correct
   const statusCounts = useMemo(() => {
-    const counts = {
-      Requested: 0,
-      Accepted: 0,
-      Completed: 0,
-      Cancelled: 0,
-      None: 0,
-    };
+    const counts = { Requested: 0, Accepted: 0, Completed: 0, Cancelled: 0 };
     pickups.forEach((p) => {
-      const s = p.status || p.pickupStatus || "None";
-      if (counts[s] === undefined) counts[s] = 0;
-      counts[s] += 1;
+      const raw = p.status || p.pickupStatus || "";
+      const s = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+      if (counts[s] !== undefined) counts[s] += 1;
     });
     return counts;
   }, [pickups]);
@@ -179,17 +194,19 @@ const PickupRequests = () => {
     [],
   );
 
-  const updateStatus = async (id, status) => {
-    if (!id || !status) return;
+  const updateStatus = async (id, newStatus) => {
+    if (!id || !newStatus) return;
     setUpdatingId(id);
     setError("");
     try {
-      const res = await api.patch(`/api/pickups/${id}/status`, { status });
+      const res = await api.patch(`/api/pickups/${id}/status`, {
+        status: newStatus,
+      });
       const updated = res.data?.pickup || res.data;
       setPickups((prev) =>
         prev.map((p) => {
           if ((p._id || p.id) !== id) return p;
-          return { ...p, ...(updated || {}), status };
+          return { ...p, ...(updated || {}), status: newStatus };
         }),
       );
     } catch (err) {
@@ -202,15 +219,28 @@ const PickupRequests = () => {
     }
   };
 
+  // ✅ FIX 6: Close button now navigates to dashboard
   const handleClose = () => {
-    // Close button action
+    const dashboardPath =
+      userType === "partner"
+        ? "/partner-homepage"
+        : userType === "admin"
+          ? "/admin-dashboard"
+          : "/pickup-requests";
+    navigate(dashboardPath);
   };
+
+  // ✅ FIX 7: Dynamic date
+  const today = new Date().toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="flex min-h-screen bg-[#F5F7F6]">
       <Sidebar userType={userType || "business"} />
 
-      {/* Main Content */}
       <div className="flex-1 ml-56 p-8">
         {/* Header */}
         <div className="flex justify-between items-start mb-6">
@@ -223,7 +253,7 @@ const PickupRequests = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            15 February 2026
+            {today}
             <Calendar className="w-4 h-4" />
           </div>
         </div>
@@ -249,7 +279,11 @@ const PickupRequests = () => {
                   onClick={() => {
                     if (stat.subtext === "View History") navigate("/history");
                   }}
-                  className={`text-xs ${stat.subtext === "View History" ? "text-[#2E5C47] hover:underline" : "text-gray-500"}`}
+                  className={`text-xs ${
+                    stat.subtext === "View History"
+                      ? "text-[#2E5C47] hover:underline"
+                      : "text-gray-500"
+                  }`}
                 >
                   {stat.subtext}
                 </button>
@@ -263,18 +297,24 @@ const PickupRequests = () => {
           <div className="flex items-center gap-2">
             {filters.map((filter) => (
               <button
-                key={filter.id || filter.value}
-                onClick={() => setActiveFilter(filter.id || filter.value)}
+                key={filter.id}
+                onClick={() => setActiveFilter(filter.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  activeFilter === (filter.id || filter.value)
+                  activeFilter === filter.id
                     ? "bg-gray-700 text-white"
                     : "bg-white text-gray-600 border border-gray-200"
                 }`}
               >
-                {filter.label || filter.value}
+                {filter.label}
                 <span
-                  className={`w-2.5 h-2.5 rounded-full ${filter.color || "bg-gray-400"}`}
+                  className={`w-2.5 h-2.5 rounded-full ${filter.color}`}
                 ></span>
+                {/* ✅ FIX 8: Show count on each filter tab */}
+                {filter.id !== "All" && statusCounts[filter.id] > 0 && (
+                  <span className="ml-0.5 text-[10px] font-bold">
+                    {statusCounts[filter.id]}
+                  </span>
+                )}
               </button>
             ))}
             <button
@@ -311,8 +351,10 @@ const PickupRequests = () => {
             <div className="col-span-2 text-sm text-gray-600">Loading…</div>
           )}
           {!loading && !error && normalized.length === 0 && (
-            <div className="col-span-2 text-sm text-gray-600">
-              No requests match your filters.
+            <div className="col-span-2 text-sm text-gray-500 text-center py-8">
+              {activeFilter === "All"
+                ? "No pickup requests yet."
+                : `No "${activeFilter}" requests found.`}
             </div>
           )}
           {normalized.map((request) => (
@@ -320,7 +362,6 @@ const PickupRequests = () => {
               key={request.id}
               className="bg-white rounded-lg p-4 border border-gray-100"
             >
-              {/* Header with status and image */}
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2">
                   <span
@@ -339,7 +380,6 @@ const PickupRequests = () => {
                 />
               </div>
 
-              {/* Details */}
               <p className="text-sm text-gray-900 mb-1">
                 {request.pickupDate
                   ? new Date(request.pickupDate).toLocaleString()
@@ -356,16 +396,15 @@ const PickupRequests = () => {
               {/* Progress bar */}
               <div className="w-full bg-gray-200 rounded-full h-1.5 mb-3">
                 <div
-                  className="bg-[#7CB87C] h-1.5 rounded-full"
+                  className="bg-[#7CB87C] h-1.5 rounded-full transition-all duration-500"
                   style={{ width: `${request.progress}%` }}
                 ></div>
               </div>
 
-              {/* Footer */}
               <div className="flex items-center justify-between">
                 <div className="flex flex-col gap-1">
                   <p className="text-xs text-gray-600">
-                    {request.driver || "View details"}
+                    {request.driver || "Unassigned"}
                   </p>
                   <div className="flex items-center gap-1">
                     <label className="text-[10px] text-gray-500">Status:</label>
@@ -375,7 +414,6 @@ const PickupRequests = () => {
                       onChange={(e) => updateStatus(request.id, e.target.value)}
                       disabled={updatingId === request.id}
                     >
-                      <option value="None">None</option>
                       <option value="Requested">Requested</option>
                       <option value="Accepted">Accepted</option>
                       <option value="Completed">Completed</option>
@@ -403,6 +441,11 @@ const PickupRequests = () => {
                     className="p-1.5 text-[#2E5C47] hover:bg-gray-100 rounded disabled:opacity-40"
                     aria-label="Chat"
                     disabled={!request.receiverId}
+                    title={
+                      !request.receiverId
+                        ? "No partner assigned yet"
+                        : "Open chat"
+                    }
                   >
                     <MessageSquare className="w-4 h-4" />
                   </button>
@@ -412,7 +455,7 @@ const PickupRequests = () => {
           ))}
         </div>
 
-        {/* Close Button */}
+        {/* ✅ FIX 6: Close button now actually navigates */}
         <div className="flex justify-end">
           <button
             onClick={handleClose}
@@ -423,6 +466,7 @@ const PickupRequests = () => {
         </div>
       </div>
 
+      {/* Call modal */}
       {callTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-lg w-full max-w-sm p-5">

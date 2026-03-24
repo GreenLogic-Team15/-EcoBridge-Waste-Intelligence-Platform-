@@ -1,5 +1,6 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import {
   LayoutDashboard,
   LogOut,
@@ -13,6 +14,15 @@ import {
 
 const ConfirmationPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+
+  const { wasteData, aiAnalysis } = location.state || {};
+
+  // ✅ FIX 1: Extract the waste log's database ID.
+  // wasteData is the full saved object returned from POST /api/waste.
+  // Its _id is the key that links a pickup request back to this waste log.
+  const wasteLogId = wasteData?._id || wasteData?.id || null;
 
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -28,7 +38,12 @@ const ConfirmationPage = () => {
   };
 
   const handleRequestPickup = () => {
-    navigate("/request-pickup");
+    // ✅ FIX 2: Pass wasteLogId explicitly alongside wasteData.
+    // RequestPickup.jsx reads wasteLogId from state and sends it to the backend
+    // so the pickup is linked to this specific waste log.
+    navigate("/request-pickup", {
+      state: { wasteData, wasteLogId },
+    });
   };
 
   return (
@@ -57,7 +72,7 @@ const ConfirmationPage = () => {
               className="w-8 h-8 rounded-full"
             />
             <span className="text-sm font-medium text-gray-700">
-              Sarah Anthony
+              {user?.name || "User"}
             </span>
           </div>
         </div>
@@ -88,25 +103,30 @@ const ConfirmationPage = () => {
           </h3>
 
           <div className="bg-white rounded-lg p-4 shadow-sm mb-4">
-            <h4 className="font-semibold text-gray-900 mb-1">Organic Waste</h4>
-            <p className="text-xs text-gray-500 mb-4">Orange peels</p>
+            <h4 className="font-semibold text-gray-900 mb-1">
+              {wasteData?.wasteCategory || "Waste Logged"}
+            </h4>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <p className="text-xs text-gray-500 mb-1">Quantity</p>
-                <p className="text-sm font-semibold text-gray-900">50 Kg</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {wasteData?.quantity} {wasteData?.unit}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Condition</p>
                 <div className="flex items-center gap-1">
-                  <p className="text-sm font-semibold text-gray-900">Fresh</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {wasteData?.wasteCondition}
+                  </p>
                   <Check className="w-4 h-4 text-green-500" />
                 </div>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Pickup Address</p>
                 <p className="text-sm font-semibold text-gray-900">
-                  123 Yale Street, Guzape, Abuja
+                  {wasteData?.pickupAddress || "Pickup Location"}
                 </p>
               </div>
             </div>

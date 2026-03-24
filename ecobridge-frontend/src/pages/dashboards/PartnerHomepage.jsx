@@ -34,7 +34,9 @@ const PartnerHomepage = () => {
   });
   const [requestLoading, setRequestLoading] = useState(false);
   const [requestError, setRequestError] = useState("");
-  const { userType } = useAuth();
+  const [requestSuccess, setRequestSuccess] = useState(false);
+
+  const { userType, user } = useAuth();
 
   const filters = useMemo(() => {
     const categoryFilters = [
@@ -78,9 +80,8 @@ const PartnerHomepage = () => {
         if (cancelled) return;
         const payload = res.data;
         const list =
-          payload?.wastes ||
-          payload?.data ||
           payload?.wasteLogs ||
+          payload?.data ||
           (Array.isArray(payload) ? payload : []);
         setWastes(Array.isArray(list) ? list : []);
       })
@@ -105,6 +106,7 @@ const PartnerHomepage = () => {
     const baseUrl =
       import.meta.env.VITE_API_BASE_URL ||
       "https://ecobridge-backend-x2uh.onrender.com";
+
     const all = wastes.map((w) => {
       const id = w._id || w.id;
       const wasteCategory = w.wasteCategory || w.category;
@@ -133,25 +135,30 @@ const PartnerHomepage = () => {
       const postedTime = w.createdAt
         ? `Posted ${new Date(w.createdAt).toLocaleString()}`
         : "";
+
+      // ✅ FIX 1: Try every possible field where the SME's ID could live
       const createdBy = w.createdBy || w.owner || w.business || w.user;
       const contact =
         createdBy?.name || createdBy?.fullName
           ? `${createdBy?.name || createdBy?.fullName}`
           : "Business";
-      const imagePath = w.imagePath || w.wasteSummary?.imagePath;
-      const image = imagePath
-        ? imagePath.startsWith("http")
-          ? imagePath
-          : `${baseUrl}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`
-        : "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=120&h=120";
 
+      // ✅ FIX 2: Exhaustive receiverId lookup — check every possible field
       const receiverId =
         createdBy?._id ||
         createdBy?.id ||
         w.smeId ||
         w.businessId ||
         w.userId ||
+        w.createdById ||
         null;
+
+      const imagePath = w.imagePath || w.wasteSummary?.imagePath;
+      const image = imagePath
+        ? imagePath.startsWith("http")
+          ? imagePath
+          : `${baseUrl}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`
+        : "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=120&h=120";
 
       return {
         raw: w,
@@ -168,11 +175,17 @@ const PartnerHomepage = () => {
         image,
         wasteLogId: id,
         receiverId,
+        quantity: qty,
       };
     });
 
     if (!text) return all;
-    return all.filter((w) => (w.title || "").toLowerCase().includes(text));
+    return all.filter(
+      (w) =>
+        (w.title || "").toLowerCase().includes(text) ||
+        (w.categoryLabel || "").toLowerCase().includes(text) ||
+        (w.location || "").toLowerCase().includes(text),
+    );
   }, [wastes, search]);
 
   const applyFilter = (id) => {
@@ -197,6 +210,14 @@ const PartnerHomepage = () => {
   };
 
   const openChat = (listing) => {
+    // ✅ FIX 3: Log a helpful warning if receiverId is missing (for debugging)
+    if (!listing.receiverId) {
+      console.warn(
+        "Chat opened but receiverId is missing for listing:",
+        listing.id,
+        "\nCheck that your backend populates createdBy._id on /api/partner/wastes",
+      );
+    }
     navigate("/messages", {
       state: {
         receiverId: listing.receiverId,
@@ -213,11 +234,16 @@ const PartnerHomepage = () => {
     try {
       await api.post("/api/partner/request-pickup", {
         wasteLogId: requestTarget.wasteLogId,
-        quantity: Number(requestForm.quantity || 0),
+        quantity: Number(requestForm.quantity || requestTarget.quantity || 0),
         pickupDate: requestForm.pickupDate,
       });
-      setRequestTarget(null);
-      setRequestForm({ quantity: "", pickupDate: "" });
+      // ✅ FIX 4: Show success state, then close modal
+      setRequestSuccess(true);
+      setTimeout(() => {
+        setRequestTarget(null);
+        setRequestForm({ quantity: "", pickupDate: "" });
+        setRequestSuccess(false);
+      }, 1500);
     } catch (err) {
       setRequestError(
         err.response?.data?.message ||
@@ -229,34 +255,25 @@ const PartnerHomepage = () => {
   };
 
   // Google Maps configuration
-  const mapContainerStyle = {
-    width: "100%",
-    height: "100%",
-  };
-
-  const center = {
-    lat: 9.0765,
-    lng: 7.3986,
-  };
-
+  const mapContainerStyle = { width: "100%", height: "100%" };
+  const center = { lat: 9.0765, lng: 7.3986 };
   const processingHubs = [
     { id: 1, name: "Kubwa Hub", position: { lat: 9.1565, lng: 7.3245 } },
     { id: 2, name: "Gwarinpa Hub", position: { lat: 9.1165, lng: 7.4086 } },
     { id: 3, name: "Kuje Hub", position: { lat: 8.8765, lng: 7.3586 } },
   ];
-
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
   return (
     <div className="flex min-h-screen bg-white">
       <Sidebar userType={userType || "partner"} />
 
-      {/* Main Content - White background */}
       <div className="flex-1 ml-56 p-6 bg-white">
         <div className="flex justify-between items-start mb-6">
           <div>
+            {/* ✅ FIX 5: Use real logged-in user name */}
             <h1 className="text-2xl font-semibold text-gray-900 mb-1">
-              Good Morning Suleiman
+              Good Morning {user?.name || user?.fullName || "Partner"}
             </h1>
             <p className="text-sm text-gray-500">
               Discover available waste, connect with businesses, and manage
@@ -279,14 +296,20 @@ const PartnerHomepage = () => {
         </div>
 
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {filters.map((filter) => (
               <button
                 key={filter.id}
                 onClick={() => applyFilter(filter.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  (filter.id && filter.id === category) ||
-                  (filter.id === "" && category === "") ||
+                  (filter.id === "" &&
+                    category === "" &&
+                    !urgentOnly &&
+                    !nearbyOnly) ||
+                  (filter.id !== "" &&
+                    filter.id !== "__urgent__" &&
+                    filter.id !== "__nearby__" &&
+                    filter.id === category) ||
                   (filter.id === "__urgent__" && urgentOnly) ||
                   (filter.id === "__nearby__" && nearbyOnly)
                     ? "bg-gray-700 text-white"
@@ -307,7 +330,7 @@ const PartnerHomepage = () => {
           <div className="relative">
             <input
               type="text"
-              placeholder="Search"
+              placeholder="Search listings..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-48 pl-3 pr-8 py-1.5 bg-white border border-gray-200 rounded text-xs focus:outline-none"
@@ -316,20 +339,30 @@ const PartnerHomepage = () => {
           </div>
         </div>
 
+        {/* ✅ FIX 6: Show total count of listings */}
+        {!loading && normalizedListings.length > 0 && (
+          <p className="text-xs text-gray-500 mb-3">
+            {normalizedListings.length} listing
+            {normalizedListings.length !== 1 ? "s" : ""} available
+          </p>
+        )}
+
         {/* Equal 50/50 split */}
         <div className="flex gap-4">
           {/* Waste Listings - 50% */}
-          <div className="w-1/2 grid grid-cols-2 gap-3">
+          <div className="w-1/2 grid grid-cols-2 gap-3 content-start">
             {error && (
               <div className="col-span-2 text-sm text-red-600" role="alert">
                 {error}
               </div>
             )}
             {loading && (
-              <div className="col-span-2 text-sm text-gray-600">Loading…</div>
+              <div className="col-span-2 text-sm text-gray-600">
+                Loading available waste…
+              </div>
             )}
             {!loading && !error && normalizedListings.length === 0 && (
-              <div className="col-span-2 text-sm text-gray-600">
+              <div className="col-span-2 text-sm text-gray-500 text-center py-8">
                 No waste listings match your filters.
               </div>
             )}
@@ -374,6 +407,11 @@ const PartnerHomepage = () => {
                     src={listing.image}
                     alt={listing.title}
                     className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                    onError={(e) => {
+                      // ✅ FIX 7: Image fallback if URL is broken
+                      e.target.src =
+                        "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=120&h=120";
+                    }}
                   />
                 </div>
 
@@ -381,7 +419,13 @@ const PartnerHomepage = () => {
                   onClick={() => {
                     setRequestTarget(listing);
                     setRequestError("");
-                    setRequestForm({ quantity: "", pickupDate: "" });
+                    setRequestSuccess(false);
+                    setRequestForm({
+                      quantity: listing.quantity
+                        ? String(listing.quantity)
+                        : "",
+                      pickupDate: "",
+                    });
                   }}
                   className="w-full bg-[#4A7C59] hover:bg-[#3d6649] text-white text-xs font-medium py-2 rounded mb-2"
                 >
@@ -406,7 +450,9 @@ const PartnerHomepage = () => {
                       aria-label="Chat"
                       disabled={!listing.receiverId}
                       title={
-                        !listing.receiverId ? "Missing recipient" : "Open chat"
+                        !listing.receiverId
+                          ? "Cannot chat — business ID missing from listing"
+                          : "Open chat"
                       }
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
@@ -437,6 +483,25 @@ const PartnerHomepage = () => {
                         }}
                       />
                     ))}
+                    {/* ✅ FIX 8: Also plot waste listings on the map if they have coords */}
+                    {normalizedListings.map((listing) => {
+                      const lat =
+                        listing.raw?.latitude ||
+                        listing.raw?.location?.lat ||
+                        listing.raw?.coords?.lat;
+                      const lng =
+                        listing.raw?.longitude ||
+                        listing.raw?.location?.lng ||
+                        listing.raw?.coords?.lng;
+                      if (!lat || !lng) return null;
+                      return (
+                        <Marker
+                          key={listing.id}
+                          position={{ lat, lng }}
+                          title={listing.title}
+                        />
+                      );
+                    })}
                   </GoogleMap>
                 </LoadScript>
               ) : (
@@ -444,7 +509,7 @@ const PartnerHomepage = () => {
                   <div className="text-center">
                     <MapPin className="w-8 h-8 mx-auto mb-2 text-[#2E5C47]" />
                     <p className="text-xs text-gray-500">
-                      Add VITE_GOOGLE_MAPS_API_KEY to .env
+                      Add VITE_GOOGLE_MAPS_API_KEY to .env to enable the map
                     </p>
                   </div>
                 </div>
@@ -454,7 +519,7 @@ const PartnerHomepage = () => {
         </div>
       </div>
 
-      {/* Simple call modal */}
+      {/* Call modal */}
       {callTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-lg w-full max-w-sm p-5">
@@ -484,64 +549,101 @@ const PartnerHomepage = () => {
       {requestTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-lg w-full max-w-md p-5">
-            <h3 className="text-base font-semibold text-gray-900 mb-1">
-              Request pickup
-            </h3>
-            <p className="text-xs text-gray-600 mb-4">{requestTarget.title}</p>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Quantity (kg)
-                </label>
-                <input
-                  type="number"
-                  value={requestForm.quantity}
-                  onChange={(e) =>
-                    setRequestForm((p) => ({ ...p, quantity: e.target.value }))
-                  }
-                  className="w-full bg-[#F0F5F2] border-0 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
-                />
+            {requestSuccess ? (
+              // ✅ FIX 4: Success state inside modal
+              <div className="text-center py-4">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg
+                    className="w-6 h-6 text-green-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-gray-900">
+                  Request Sent!
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  The business will be notified.
+                </p>
               </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Pickup date
-                </label>
-                <input
-                  type="date"
-                  value={requestForm.pickupDate}
-                  onChange={(e) =>
-                    setRequestForm((p) => ({
-                      ...p,
-                      pickupDate: e.target.value,
-                    }))
-                  }
-                  className="w-full bg-[#F0F5F2] border-0 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
-                />
-              </div>
-            </div>
+            ) : (
+              <>
+                <h3 className="text-base font-semibold text-gray-900 mb-1">
+                  Request pickup
+                </h3>
+                <p className="text-xs text-gray-600 mb-4">
+                  {requestTarget.title}
+                </p>
 
-            {requestError && (
-              <p className="text-sm text-red-600 mt-3" role="alert">
-                {requestError}
-              </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Quantity (kg)
+                    </label>
+                    <input
+                      type="number"
+                      value={requestForm.quantity}
+                      onChange={(e) =>
+                        setRequestForm((p) => ({
+                          ...p,
+                          quantity: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#F0F5F2] border-0 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Pickup date
+                    </label>
+                    <input
+                      type="date"
+                      value={requestForm.pickupDate}
+                      onChange={(e) =>
+                        setRequestForm((p) => ({
+                          ...p,
+                          pickupDate: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-[#F0F5F2] border-0 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
+                    />
+                  </div>
+                </div>
+
+                {requestError && (
+                  <p className="text-sm text-red-600 mt-3" role="alert">
+                    {requestError}
+                  </p>
+                )}
+
+                <div className="flex gap-3 justify-end mt-5">
+                  <button
+                    onClick={() => {
+                      setRequestTarget(null);
+                      setRequestError("");
+                    }}
+                    className="px-4 py-2 text-sm rounded border border-gray-200 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={submitPickupRequest}
+                    disabled={requestLoading}
+                    className="px-4 py-2 text-sm rounded bg-[#4A7C59] text-white hover:bg-[#3d6649] disabled:opacity-60"
+                  >
+                    {requestLoading ? "Submitting…" : "Submit"}
+                  </button>
+                </div>
+              </>
             )}
-
-            <div className="flex gap-3 justify-end mt-5">
-              <button
-                onClick={() => setRequestTarget(null)}
-                className="px-4 py-2 text-sm rounded border border-gray-200 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitPickupRequest}
-                disabled={requestLoading}
-                className="px-4 py-2 text-sm rounded bg-[#4A7C59] text-white hover:bg-[#3d6649]"
-              >
-                {requestLoading ? "Submitting…" : "Submit"}
-              </button>
-            </div>
           </div>
         </div>
       )}

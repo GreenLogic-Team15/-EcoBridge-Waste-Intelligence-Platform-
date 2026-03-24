@@ -21,7 +21,7 @@ const WasteLogging = () => {
     quantity: "50",
     unit: "KG",
     condition: "",
-    pickupAddress: "123 Yale Street, Guzape, Abuja",
+    pickupAddress: "",
     availableDate: "2026-02-15",
     availableTime: "12:00",
     urgency: "Normal",
@@ -95,11 +95,25 @@ const WasteLogging = () => {
     body.append("status", "Draft");
     if (formData.price) body.append("price", String(Number(formData.price)));
 
+    const token = localStorage.getItem("token");
+
     api
-      .post("/api/waste", body)
+      .post("/api/waste", body, {
+        headers: {
+          // logged-in user ID badge"
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      })
       .then((res) => {
         const analysis = res.data?.aiAnalysis || null;
+        const loggedWaste = res.data.waste || res.data;
         setAiAnalysis(analysis);
+        navigate("/confirmation", {
+          state: {
+            wasteData: loggedWaste,
+          },
+        });
       })
       .catch((err) => {
         setSubmitError(
@@ -315,7 +329,6 @@ const WasteLogging = () => {
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
 
@@ -385,20 +398,15 @@ const WasteLogging = () => {
                 <label className="block text-xs text-gray-600 mb-1.5">
                   Pickup address
                 </label>
-                <div className="relative">
-                  <select
-                    value={formData.pickupAddress}
-                    onChange={(e) =>
-                      handleChange("pickupAddress", e.target.value)
-                    }
-                    className="w-full bg-white border border-gray-200 rounded-lg py-2.5 px-3 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#2E5C47]/20"
-                  >
-                    <option>123 Yale Street, Guzape, Abuja</option>
-                    <option>456 Main Road, Wuse, Abuja</option>
-                    <option>789 Central Ave, Garki, Abuja</option>
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                </div>
+                <input
+                  type="text"
+                  placeholder="Start typing your address..."
+                  className="w-full bg-[#F0F5F2] border-0 rounded-lg py-3 px-4 text-sm"
+                  value={formData.pickupAddress}
+                  onChange={(e) =>
+                    handleChange("pickupAddress", e.target.value)
+                  }
+                />
               </div>
 
               {/* Availability and Timing */}
@@ -564,7 +572,11 @@ const WasteLogging = () => {
                 <div className="mt-3">
                   <button
                     type="button"
-                    onClick={() => navigate("/confirmation")}
+                    onClick={() =>
+                      navigate("/confirmation", {
+                        state: { wasteData: formData },
+                      })
+                    }
                     className="px-4 py-2 bg-[#4A7C59] text-white text-sm rounded hover:bg-[#3d6649]"
                   >
                     Continue

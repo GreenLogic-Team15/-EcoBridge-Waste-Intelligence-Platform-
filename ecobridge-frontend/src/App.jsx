@@ -10,7 +10,9 @@ const SignupBusiness = lazy(() => import("./pages/auth/SignupBusiness"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
 
-const PartnerHomepage = lazy(() => import("./pages/dashboards/PartnerHomepage"));
+const PartnerHomepage = lazy(
+  () => import("./pages/dashboards/PartnerHomepage"),
+);
 const AdminDashboard = lazy(() => import("./pages/dashboards/AdminDashboard"));
 const Notifications = lazy(() => import("./pages/dashboards/Notifications"));
 const WasteLogging = lazy(() => import("./pages/dashboards/WasteLogging"));
@@ -22,6 +24,8 @@ const RequestPickup = lazy(() => import("./pages/dashboards/RequestPickup"));
 const History = lazy(() => import("./pages/History"));
 const Settings = lazy(() => import("./pages/Setting"));
 const Messages = lazy(() => import("./pages/messages/Messages"));
+
+const libraries = ["places"];
 
 function AppFallback() {
   return (
